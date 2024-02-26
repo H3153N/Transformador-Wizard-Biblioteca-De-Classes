@@ -72,7 +72,6 @@ namespace Biblioteca
 
                     doubles.Add(double.Parse(asda, CultureInfo.InvariantCulture));
                 }
-                
             }
             
 
@@ -86,9 +85,6 @@ namespace Biblioteca
             }
 
             Dados = Tuple.Create(doubles.ToArray(), pontosDeTempo.ToArray());
-
-            
-
         }
 
 
