@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace Biblioteca
 
         //TITULO;1;1;1;10X;100X;1-2-3-4-5-6
         public string Path { get; private set; } = "";
-        public ModuloFase ModuloFase { get; private set; } = new ModuloFase();
+        public ModuloFase ModuloFase { get;  set; } = new ModuloFase();
         public DateTime Criação { get; private set; } = DateTime.MinValue;      
         public string Comentário { get; set; }
         public string Random { get; private set; }
@@ -37,7 +38,7 @@ namespace Biblioteca
 
         public Teste(string path)
         {
-            ModuloFase = GerenciadorDeArquivos.GetPontos(path);
+            //
             this.Path = path;
             path = path.Split('\\').Last();
             NomeArquivo = path;
@@ -106,6 +107,11 @@ namespace Biblioteca
                 codigo += Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray()[0].ToString();
             }
             return codigo;
+        }
+
+        public async Task PopularModuloFase()
+        {
+            ModuloFase = await GerenciadorDeArquivos.GetPontos(Path);
         }
     }
 }

@@ -76,7 +76,7 @@ namespace Biblioteca
         }
 
         
-        public static ModuloFase GetPontos(string path)
+        public static Task<ModuloFase> GetPontos(string path)
         {            
             List<DataPoint> modulo = new List<DataPoint>();
             List<DataPoint> fase = new List<DataPoint>();
@@ -87,14 +87,14 @@ namespace Biblioteca
                 String line;
                 while((line = sr.ReadLine()) != null)
                 {
-                    string[] strings = line.Split(";");
-                    modulo.Add(new DataPoint(float.Parse(strings[0], CultureInfo.InvariantCulture), float.Parse(strings[1], CultureInfo.InvariantCulture)));
-                    fase.Add(new DataPoint(float.Parse(strings[0], CultureInfo.InvariantCulture), float.Parse(strings[2], CultureInfo.InvariantCulture)));
+                    string[] strings = line.Replace(',','.').Split(";");
+                    modulo.Add(new DataPoint(double.Parse(strings[0], CultureInfo.InvariantCulture), double.Parse(strings[1], CultureInfo.InvariantCulture)));
+                    fase.Add(new DataPoint(double.Parse(strings[0], CultureInfo.InvariantCulture), double.Parse(strings[2], CultureInfo.InvariantCulture)));
                 }
             }    
             ModuloFase moduloFase = new ModuloFase(modulo, fase);
             
-            return moduloFase;
+            return Task.FromResult(moduloFase);
         }
 
 
@@ -118,7 +118,8 @@ namespace Biblioteca
         public static void SalvarTeste(Teste teste, string localEnsaio)
         {
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
-            File.Create(caminho);
+            File.Create(caminho).Close();
+            
         }
 
         public static void SalvarDados(Teste teste,string localEnsaio)
