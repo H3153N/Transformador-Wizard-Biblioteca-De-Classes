@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ivi.Visa;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -115,9 +116,16 @@ namespace Biblioteca
 
             foreach (int i in frequencias)
             {
-                Comunicação.ConfigurarAquisiçãoOscilosóopio(10, 10000, 16);
-                Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, offset, true);
-                pontosDeMedição.Add(RealizarMedição(MediçãoTipo.Admitancia, canalTensao, canalCorrente));
+                try
+                {
+                    Comunicação.ConfigurarAquisiçãoOscilosóopio(10, 10000, 16);
+                    Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, offset, true);
+                    pontosDeMedição.Add(RealizarMedição(MediçãoTipo.Admitancia, canalTensao, canalCorrente));
+                }
+                catch(IOTimeoutException timeout)
+                {
+                    Debug.WriteLine($"Timeout: {timeout.Message}");
+                }
             }
             return true;
         }

@@ -10,15 +10,24 @@ namespace Biblioteca
 {
     public class Comunicação
     {
-        public static string EndereçoGeradorLAN { get; set; } = "TCPIP::192.168.0.103::INSTR";
-        public static string EndereçoOsciloscopioLAN { get; set; } = "TCPIP::192.168.0.102::INSTR";
+        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.104::INSTR";
+        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.105::INSTR";
 
         public static IMessageBasedSession? ConexãoGeradoFunções { get; private set; }
         public static IMessageBasedSession? ConexãoOsciloscópio { get; private set; }
         public static IVisaSession? sessãoVisaGerador { get; private set; }
         public static IVisaSession? sessãoVisaOsciloscópio { get; private set; }
         public static Version? visaNetSharedComponentsVersão { get; private set; } = typeof(GlobalResourceManager).Assembly.GetName().Version;
+        public static int IniciarConexãoTimeout { get; private set; } = 1000;
 
+
+        public static void ConfigurarConexões(string geradorString, string osciloscopioString, int timeout)
+        {
+            EndereçoGeradorLAN = geradorString;
+            EndereçoOsciloscopioLAN = osciloscopioString;
+            IniciarConexãoTimeout = timeout;
+        }
+            
 
 
         public static double FrequenciaAplicada
@@ -30,6 +39,73 @@ namespace Biblioteca
         {
             get { return GetEscalaDeTempo(); }
         }
+
+        public static bool ConectarOsciloscópio()
+        {
+
+            //REMOVER, USAR CATCH PARA PEGAR TIMEOUT E RESOURCE LOCKED
+            if(ConexãoOsciloscópio != null && (ConexãoOsciloscópio.ResourceLockState == ResourceLockState.ExclusiveLock))
+            {
+                return true;
+            }
+            try
+            {
+                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, 1000);
+                if (sessãoVisaOsciloscópio is IMessageBasedSession connOsciloscópio)
+                {
+                    ConexãoOsciloscópio = connOsciloscópio;
+                    ConexãoOsciloscópio.TerminationCharacterEnabled = true;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch(VisaException e)
+            {
+                return false;
+            }
+        }
+
+        public static bool ConectarGerador()
+        {
+            if (ConexãoGeradoFunções != null && (ConexãoGeradoFunções.ResourceLockState == ResourceLockState.ExclusiveLock))
+            {
+                return true;
+            }
+            try
+            {
+                sessãoVisaGerador = GlobalResourceManager.Open(EndereçoGeradorLAN, AccessModes.ExclusiveLock, 1000);
+                if (sessãoVisaGerador is IMessageBasedSession connGerador)
+                {
+                    ConexãoGeradoFunções = connGerador;
+                    ConexãoGeradoFunções.TerminationCharacterEnabled = true;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (VisaException e)
+            {
+                return false;
+            }
+        }
+
+        public static async Task<bool> ConectarGeradorAsync()
+        {
+            return await Task.Run(() => ConectarGerador());
+        }
+
+        public static async Task<bool> ConectarOsciloscópioAsync()
+        {
+            return await Task.Run(() => ConectarOsciloscópio());
+        }
+
+
+
 
         public static string IniciarConexões()
         {
