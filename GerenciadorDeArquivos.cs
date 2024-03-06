@@ -13,8 +13,14 @@ namespace Biblioteca
 
     public static class GerenciadorDeArquivos
     {
-        public static string Caminho = "C:\\Users\\Pedro Miranda\\Desktop\\pasta_teste";
-        public static string PastaMestre = "Transformador-Wizard";
+        //public static string Caminho = "C:\\Users\\Pedro Miranda\\Desktop\\pasta_teste";
+        public static readonly string PastaMestre = "Transformador-Wizard";
+        public static readonly string PastaDados = PastaMestre + "\\Dados";
+        public static readonly string PastaDispositivos = PastaDados + "\\Dispositivos";
+        public static readonly string PastaConfigurações = PastaMestre + "\\Config";
+
+        //TEMPORARIO -> REMOVER ANTES DE RL 2.0
+        public static readonly string ArquivoConexões = PastaConfigurações + "\\conexões.txt";
         public static ObservableCollection<Dispositivo> GetDispositivos(string pastaMestre)
         {
             ObservableCollection<Dispositivo> dispositivos = [];

@@ -17,8 +17,9 @@ namespace Biblioteca
 
             double termoIndependente = parametros[0];
             double Vmax = Math.Sqrt(Math.Pow(parametros[1], 2) + Math.Pow(parametros[2], 2));
-            double fase = Math.Atan2(-parametros[1] , parametros[2]) * 180 / Math.PI;
 
+            double fase = Math.Atan2(-parametros[1], parametros[2]) * 180 / Math.PI;
+           
             return new CossenoCoeficientes(termoIndependente, Vmax, fase);
         }
     }

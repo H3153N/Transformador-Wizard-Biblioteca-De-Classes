@@ -94,6 +94,15 @@ namespace Biblioteca
                 double admitancia = formaDeOnda2.Amplitude / formaDeOnda1.Amplitude;
                 double fase = formaDeOnda2.Fase - formaDeOnda1.Fase;
 
+                if (fase > 180)
+                {
+                    fase -= 360;
+                }
+                if (fase < -180)
+                {
+                    fase += 360;
+                }
+
                 PontoDeMedição medição = new(admitancia, fase, frequencia);
                 Debug.WriteLine($"medição frequencia:{frequencia} -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
                 return medição;
