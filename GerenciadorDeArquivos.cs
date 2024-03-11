@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -63,24 +64,6 @@ namespace Biblioteca
         }
 
 
-        //REMOVER
-        public static string[] GetPastasDeEnsaios(string path)
-        {
-            return Directory.GetDirectories(path);
-        }
-        //REMOVER
-        public static List<Ensaio> GetEnsaiosEmPasta(string path)
-        {
-            string[] Arquivos = Directory.GetFiles(path);
-            List<Ensaio> testes = new List<Ensaio>();
-            foreach (string Arquivo in Arquivos)
-            {
-                testes.Add(new Ensaio(Arquivo));
-            }
-            return testes;
-            
-        }
-
         
         public static Task<ModuloFase> GetPontos(string path)
         {            
@@ -93,7 +76,7 @@ namespace Biblioteca
                 String line;
                 while((line = sr.ReadLine()) != null)
                 {
-                    string[] strings = line.Replace(',','.').Split(";");
+                    string[] strings = line.Replace(',','.').Split("\t");
                     modulo.Add(new DataPoint(double.Parse(strings[0], CultureInfo.InvariantCulture), double.Parse(strings[1], CultureInfo.InvariantCulture)));
                     fase.Add(new DataPoint(double.Parse(strings[0], CultureInfo.InvariantCulture), double.Parse(strings[2], CultureInfo.InvariantCulture)));
                 }
@@ -133,8 +116,40 @@ namespace Biblioteca
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
             foreach (var item in GerenciadorDeTestes.pontosDeMedição)
             {
-                File.AppendAllText(caminho, item.Frequencia.ToString() + ';' + item.Admitancia.ToString() + ';' + item.Fase.ToString() + Environment.NewLine);
+                File.AppendAllText(caminho, item.Frequencia.ToString(CultureInfo.InvariantCulture) + '\t' + item.Admitancia.ToString() + '\t' + item.Fase.ToString(CultureInfo.InvariantCulture) + Environment.NewLine);
             }
+        }
+
+        public static Tuple<string,string> LerVisaString()
+        {
+            string caminho = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões);
+            if (!File.Exists(caminho))
+            {
+                File.Create(caminho).Close();
+            }            
+            try
+            {
+                string dados = File.ReadAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões));
+                Tuple<string, string> tuple = Tuple.Create(dados.Split('\n')[0], dados.Split('\n')[1]);
+                return tuple;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                return (Tuple.Create("TCPIP::192.168.0.100", "TCPIP::192.168.0.101"));
+            }
+            
+        }
+
+        public static void SalvarVistaString(string osciloscopio, string gerador)
+        {
+            string caminho = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões);
+            if (!File.Exists(caminho))
+            {
+                File.Create(caminho).Close();
+            }
+            string texto = osciloscopio + Environment.NewLine + gerador;
+            File.WriteAllText(caminho, texto);            
         }
     }
 }

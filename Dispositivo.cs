@@ -43,5 +43,15 @@ namespace Biblioteca
             Ensaios.Clear();
             Ensaios = GerenciadorDeArquivos.GetEnsaios(Path);
         }
+        public Tuple<int, int> GetEnsaiosETestes()
+        {
+            int numTotalTestes = 0;
+
+            foreach (Ensaio item in Ensaios)
+            {
+                numTotalTestes += item.Testes.Count;
+            }
+            return Tuple.Create(Ensaios.Count, numTotalTestes);
+        }
     }
 }

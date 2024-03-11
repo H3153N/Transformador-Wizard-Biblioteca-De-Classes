@@ -62,7 +62,7 @@ namespace Biblioteca
 
             Criação = new DateTime(long.Parse(dados[6]));
             Random = dados[7];
-
+            PopularModuloFase();
         }
 
         
@@ -74,28 +74,12 @@ namespace Biblioteca
             CanalFonte2 = f2;
             AtenuaçãoCanalFonte1 = a1;
             AtenuaçãoCanalFonte2 = a2;
-            
-            string pontosString = ";";
-            for (int i = 0; i < ppd.Length; i++)
-            {
-                pontosString += ppd[i] + "-";
-            }
-            NomeArquivo = comentario + ';' + ((int)f1).ToString() + ';' + ((int)f2).ToString() +';' + a1.ToString() + ';' + a2.ToString() + pontosString.Trim('-') + ';'+ dataDeCriação.Ticks.ToString() + ';' + RandomString(5);
-        }
-        #region construtores simples
-        public Teste(string comentario, DateTime dataDeCriação, ModuloFase dados)
-        {
-            Comentário = comentario;
-            Criação = dataDeCriação;
-            ModuloFase = dados;
-        }
+            PontosPorDecada = ppd.ToList();
 
-        public Teste(string comentario, DateTime dataDeCriação)
-        {
-            Comentário = comentario;
-            Criação = dataDeCriação;
+            NomeArquivo = comentario + ';' + ((int)f1).ToString() + ';' + ((int)f2).ToString() +';' + a1.ToString() + ';' + a2.ToString() + GetPPDString() + ';'+ dataDeCriação.Ticks.ToString() + ';' + RandomString(5);
+
         }
-        #endregion
+        
         public static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -109,9 +93,18 @@ namespace Biblioteca
             return codigo;
         }
 
-        public async Task PopularModuloFase()
+        public void PopularModuloFase()
         {
-            ModuloFase = await GerenciadorDeArquivos.GetPontos(Path);
+            ModuloFase = GerenciadorDeArquivos.GetPontos(Path).Result;
+        }
+        public string GetPPDString()
+        {
+            string pontosString = ";";
+            for (int i = 0; i < PontosPorDecada.Count; i++)
+            {
+                pontosString += PontosPorDecada[i] + "-";
+            }
+            return pontosString.Trim('-');
         }
     }
 }

@@ -10,15 +10,15 @@ namespace Biblioteca
 {
     public class Comunicação
     {
-        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.113::INSTR";
-        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.150::INSTR";
+        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.142::INSTR";
+        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.143::INSTR";
 
         public static IMessageBasedSession? ConexãoGeradoFunções { get; private set; }
         public static IMessageBasedSession? ConexãoOsciloscópio { get; private set; }
         public static IVisaSession? sessãoVisaGerador { get; private set; }
         public static IVisaSession? sessãoVisaOsciloscópio { get; private set; }
         public static Version? visaNetSharedComponentsVersão { get; private set; } = typeof(GlobalResourceManager).Assembly.GetName().Version;
-        public static int IniciarConexãoTimeout { get; private set; } = 1000;
+        public static int IniciarConexãoTimeout { get; private set; } = 2000;
 
 
         public static void ConfigurarConexões(string geradorString, string osciloscopioString, int timeout)
@@ -46,7 +46,7 @@ namespace Biblioteca
             }
             try
             {
-                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, 1000);
+                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, IniciarConexãoTimeout);
                 if (sessãoVisaOsciloscópio is IMessageBasedSession connOsciloscópio)
                 {
                     ConexãoOsciloscópio = connOsciloscópio;
@@ -71,7 +71,7 @@ namespace Biblioteca
             }
             try
             {
-                sessãoVisaGerador = GlobalResourceManager.Open(EndereçoGeradorLAN, AccessModes.ExclusiveLock, 1000);
+                sessãoVisaGerador = GlobalResourceManager.Open(EndereçoGeradorLAN, AccessModes.ExclusiveLock, IniciarConexãoTimeout);
                 if (sessãoVisaGerador is IMessageBasedSession connGerador)
                 {
                     ConexãoGeradoFunções = connGerador;
@@ -295,7 +295,7 @@ namespace Biblioteca
         }
         public static void SetAtenuação(CanalFonte canal, Atenuação atenuação)
         {
-            ConexãoOsciloscópio.FormattedIO.WriteLine($"PROBe<{((int)canal).ToString()}>:SETup:ATTenuation:MANual {((int)atenuação).ToString()}");
+            ConexãoOsciloscópio.FormattedIO.WriteLine($"PROBe<{(int)canal}>:SETup:ATTenuation:MANual {(int)atenuação}");
         }
     }
 }

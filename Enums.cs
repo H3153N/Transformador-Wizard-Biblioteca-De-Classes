@@ -32,4 +32,9 @@ namespace Biblioteca
         Impulso = 1,
         RelaçãoDeTransferência = 2
     }
+    public enum FaseModulo
+    {
+        Modulo = 0,
+        Fase = 1,
+    }
 }
