@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -10,8 +11,8 @@ namespace Biblioteca
 {
     public class Comunicação
     {
-        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.142::INSTR";
-        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.143::INSTR";
+        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.109::INSTR";
+        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.118::INSTR";
 
         public static IMessageBasedSession? ConexãoGeradoFunções { get; private set; }
         public static IMessageBasedSession? ConexãoOsciloscópio { get; private set; }
@@ -21,7 +22,7 @@ namespace Biblioteca
         public static int IniciarConexãoTimeout { get; private set; } = 2000;
 
 
-        public static void ConfigurarConexões(string geradorString, string osciloscopioString, int timeout)
+        public static void ConfigurarConexões(string osciloscopioString, string geradorString, int timeout)
         {
             EndereçoGeradorLAN = geradorString;
             EndereçoOsciloscopioLAN = osciloscopioString;
@@ -60,6 +61,7 @@ namespace Biblioteca
             }
             catch(VisaException e)
             {
+                Debug.WriteLine(e.Message);
                 return false;
             }
         }

@@ -130,13 +130,13 @@ namespace Biblioteca
             try
             {
                 string dados = File.ReadAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões));
-                Tuple<string, string> tuple = Tuple.Create(dados.Split('\n')[0], dados.Split('\n')[1]);
+                Tuple<string, string> tuple = Tuple.Create(dados.Split('\n')[0].TrimEnd('\r'), dados.Split('\n')[1].TrimEnd('\r'));
                 return tuple;
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
-                return (Tuple.Create("TCPIP::192.168.0.100", "TCPIP::192.168.0.101"));
+                return (Tuple.Create("TCPIP::192.168.0.0::INSTR", "TCPIP::192.168.0.1::INSTR"));
             }
             
         }
