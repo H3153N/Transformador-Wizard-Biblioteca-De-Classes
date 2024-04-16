@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using OxyPlot;
@@ -64,6 +65,41 @@ namespace Biblioteca
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="path">caminho absoluto do arquivo contendo os dados do teste</param>
+        /// <returns></returns>
+        public static List<PontoDeMedição> GetPontosSalvos(string path)
+        {
+            List<string> linhas = File.ReadAllLines(path).ToList();
+            List<PontoDeMedição> todosOsPontos = new List<PontoDeMedição>();
+
+            foreach (var linhaDeDados in linhas)
+            {
+                try
+                {
+                    string[] argumentos = linhaDeDados.Split('\t');
+
+                    double admitancia = double.Parse(argumentos[1], CultureInfo.InvariantCulture);
+                    double fase =       double.Parse(argumentos[2], CultureInfo.InvariantCulture);
+                    double frequencia = double.Parse(argumentos[0], CultureInfo.InvariantCulture);
+
+                    int houveErro =     int.Parse(argumentos[3], CultureInfo.InvariantCulture);
+
+                    double escalaTensao =   double.Parse(argumentos[4], CultureInfo.InvariantCulture);
+                    double escalaCorrente = double.Parse(argumentos[5], CultureInfo.InvariantCulture);
+
+                    todosOsPontos.Add(new PontoDeMedição(admitancia, fase, frequencia, houveErro, escalaTensao, escalaCorrente));
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("GET PONTOS SALVOS ERRO: " + e.Message);
+                }                
+            }
+
+            return todosOsPontos;
+        }
         
         public static Task<ModuloFase> GetPontos(string path)
         {            
@@ -89,7 +125,7 @@ namespace Biblioteca
 
         public static void SalvarDispositivo(Dispositivo dispositivo)
         {
-            string caminho = System.IO.Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), PastaMestre);
+            string caminho = System.IO.Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), PastaDispositivos);
             if (Path.Exists(caminho)!)
             {
                 Directory.CreateDirectory(caminho);
@@ -116,17 +152,25 @@ namespace Biblioteca
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
             foreach (var item in GerenciadorDeTestes.pontosDeMedição)
             {
-                File.AppendAllText(caminho, item.Frequencia.ToString(CultureInfo.InvariantCulture) + '\t' + item.Admitancia.ToString() + '\t' + item.Fase.ToString(CultureInfo.InvariantCulture) + Environment.NewLine);
+                string  linha  = item.Frequencia.ToString(CultureInfo.InvariantCulture)             + '\t';
+                        linha += item.Admitancia.ToString(CultureInfo.InvariantCulture)             + '\t';
+                        linha += item.Fase.ToString(CultureInfo.InvariantCulture)                   + '\t';
+                        linha += item.houveErro.ToString(CultureInfo.InvariantCulture)              + '\t';
+                        linha += item.EscalaVerticalTensao.ToString(CultureInfo.InvariantCulture)   + '\t';
+                        linha += item.EscalaVerticalCorrente.ToString(CultureInfo.InvariantCulture) + Environment.NewLine;
+
+
+                File.AppendAllText(caminho, linha);
             }
         }
 
-        public static Tuple<string,string> LerVisaString()
+        public static Tuple<string, string> LerVisaString()
         {
             string caminho = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões);
             if (!File.Exists(caminho))
             {
                 File.Create(caminho).Close();
-            }            
+            }
             try
             {
                 string dados = File.ReadAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões));
@@ -138,10 +182,12 @@ namespace Biblioteca
                 Debug.WriteLine(e.Message);
                 return (Tuple.Create("TCPIP::192.168.0.0::INSTR", "TCPIP::192.168.0.1::INSTR"));
             }
-            
+
         }
 
-        public static void SalvarVistaString(string osciloscopio, string gerador)
+
+       
+        public static void SalvarVisaString(string osciloscopio, string gerador)
         {
             string caminho = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões);
             if (!File.Exists(caminho))
@@ -149,7 +195,9 @@ namespace Biblioteca
                 File.Create(caminho).Close();
             }
             string texto = osciloscopio + Environment.NewLine + gerador;
-            File.WriteAllText(caminho, texto);            
+            File.WriteAllText(caminho, texto);
         }
+
+        
     }
 }

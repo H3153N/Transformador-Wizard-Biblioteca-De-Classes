@@ -37,4 +37,10 @@ namespace Biblioteca
         Modulo = 0,
         Fase = 1,
     }
+
+    public enum AquisiçãoModo 
+    {
+        AltaResolução = 0,
+        Médias = 1    
+    }
 }

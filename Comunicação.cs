@@ -161,30 +161,37 @@ namespace Biblioteca
         /// <summary>
         /// Ajusta a escala vertical do canal de Tensão (não funciona para o canal da corrente)
         /// </summary>
-        /// <param name="tensãoDePicoVindaDoGerador">tensão de referencia para inicio dos ajustes. a tensão sendo aplicada pelo gerador de tensão</param>
+        /// <param name="tensãoDePicoMedida">tensão de referencia para inicio dos ajustes. a tensão sendo aplicada pelo gerador de tensão</param>
         /// <param name="canalDaTensão">canal do osciloscópio</param>
         /// <param name="numeroIterações">numero de ajustes feitos, mais ajustes levam a medições mais precisas porém aumentam o tempo das medições de maneira significativa, recomendado de 3 a 5</param>
         /// <exception cref="Exception">especificar</exception>
-        public static void AjustarEscalaVerticalTensão(double tensãoDePicoVindaDoGerador, CanalFonte canalDaTensão, int numeroIterações)
+        public static void AjustarEscalaVerticalTensão(double tensãoDePicoMedida, CanalFonte canalDaTensão, int numeroIterações)
         {
             SetOffset(canalDaTensão, 0);
             // envia comando ajustando a escala preliminar com base no valor aplicado pelo gerador de funções
                 
             List<string> escalasAnteriores = new List<string>();
-            escalasAnteriores.Add(GetEscalaVerticalString(tensãoDePicoVindaDoGerador));
+            escalasAnteriores.Add(GetEscalaVerticalString(tensãoDePicoMedida));
 
             ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canalDaTensão).ToString()}:SCALe {escalasAnteriores.First()}");
-            //Console.WriteLine($"Escala Inicial: {escalasAnteriores.First()}");
-            Thread.Sleep(200);
+            
+            Thread.Sleep(100);
             for (int i = 0; i < numeroIterações; i++)
             {
-                Thread.Sleep(150);
+                Thread.Sleep(75);
                 // reajusta a escala várias vezes com base em novas medições da tensão de pico
                     string escalaAtual = GetEscalaVerticalString(GetTensãoDePicoMedida(canalDaTensão));
+                float escala = float.Parse(escalaAtual);
+
+                bool táNaMargem = float.Parse(escalasAnteriores.Last()) < escala*1.1f && float.Parse(escalasAnteriores.Last()) > escala * 0.9f;
+                if (táNaMargem)
+                {
+                    break;
+                }
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canalDaTensão).ToString()}:SCALe {escalaAtual}");
 
                 var vppMedido = GetTensãoDePicoMedida(canalDaTensão);
-                //Console.WriteLine($"Escala {i}: {escalasAnteriores.First()}, vp+ medido: {vppMedido}");
+                
                 if (vppMedido < 20)
                 {
                     escalasAnteriores.Add(escalaAtual);
@@ -202,14 +209,23 @@ namespace Biblioteca
         /// <param name="pointsValue"></param>
         /// <param name="averageCount"></param>
         /// <exception cref="Exception"></exception>
-        public static void ConfigurarAquisiçãoOscilosóopio(int singleCount, int pointsValue, int averageCount)
+        public static void ConfigurarAquisiçãoOscilosóopio(int singleCount, int pointsValue, int averageCount, AquisiçãoModo modo)
         {
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:NSINgle:COUNt {singleCount}");
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {pointsValue}");
-                ConexãoOsciloscópio.FormattedIO.WriteLine("ACQuire:TYPE AVERage");
+            ConexãoOsciloscópio.FormattedIO.WriteLine("FORMat:DATA ASCii, 0");
+            ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {pointsValue}");
+
+            if (modo == AquisiçãoModo.AltaResolução)
+            {
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:HRESolution AUTO");
+            }
+            else if(modo == AquisiçãoModo.Médias)
+
+            {
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:HRESolution OFF");
+                ConexãoOsciloscópio.FormattedIO.WriteLine("ACQuire:TYPE AVERage");
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:NSINgle:COUNt {singleCount}");
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:AVERage:COUNt {averageCount}");
-                ConexãoOsciloscópio.FormattedIO.WriteLine("FORMat:DATA ASCii, 0");
+            }
         }
         /// <summary>
         /// 
@@ -277,14 +293,36 @@ namespace Biblioteca
         {
             string header;
             string dados;
-
+            //Debug.WriteLine("GET FORMA DE ONDA");
             ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA:HEADer?");
             header = ConexãoOsciloscópio.FormattedIO.ReadLine();
-            ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA:POIN MAXimum");
+            ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA:POIN DEF");
+           // Debug.WriteLine("DATA?");
             ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA?");
             dados = ConexãoOsciloscópio.FormattedIO.ReadLine();
 
             return new FormaDeOnda(header, dados, frequencia);
+        }
+
+        public static string InquerirOsciloscópio(string pergunta, bool EsperarResposta)
+        {
+            try
+            {
+                ConexãoOsciloscópio.FormattedIO.WriteLine(pergunta);
+                if (EsperarResposta)
+                {
+                    return ConexãoOsciloscópio.FormattedIO.ReadLine();
+                }
+                return "-1";
+            }
+            catch (Exception e )
+            {
+                return e.Message;   
+            }
+        }
+        public static void RunSingle()
+        {
+            ConexãoOsciloscópio.FormattedIO.WriteLine($"RUNSingle");
         }
         public static void RunStop(bool run)
         {

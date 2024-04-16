@@ -54,23 +54,7 @@ namespace Biblioteca
                 catch (Exception e)
                 {
 
-                    var asda = "";
-                    asda = numerosString.Replace("\u0001", "1");
-                    asda = numerosString.Replace("\u0002", "2");
-                    asda = numerosString.Replace("\u0003", "3");
-                    asda = numerosString.Replace("\u0004", "4");
-                    asda = numerosString.Replace("\u0005", "5");
-                    asda = numerosString.Replace("\u0006", "6");
-                    asda = numerosString.Replace("\u0007", "7");
-                    asda = numerosString.Replace("\u0008", "8");
-                    asda = numerosString.Replace("\u0009", "9");
-
-                    asda = asda.Replace("\t", string.Empty);
-
-
-                    
-
-                    doubles.Add(double.Parse(asda, CultureInfo.InvariantCulture));
+                    throw new ErroDeTransferência { FrequenciaErro = frequencia };
                 }
             }
             

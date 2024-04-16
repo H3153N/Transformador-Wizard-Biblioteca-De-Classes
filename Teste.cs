@@ -61,7 +61,7 @@ namespace Biblioteca
             }
 
             Criação = new DateTime(long.Parse(dados[6]));
-            Random = dados[7];
+            Random = dados[7].Split('.')[0];
             PopularModuloFase();
         }
 
@@ -76,7 +76,7 @@ namespace Biblioteca
             AtenuaçãoCanalFonte2 = a2;
             PontosPorDecada = ppd.ToList();
 
-            NomeArquivo = comentario + ';' + ((int)f1).ToString() + ';' + ((int)f2).ToString() +';' + a1.ToString() + ';' + a2.ToString() + GetPPDString() + ';'+ dataDeCriação.Ticks.ToString() + ';' + RandomString(5);
+            NomeArquivo = comentario + ';' + ((int)f1).ToString() + ';' + ((int)f2).ToString() +';' + a1.ToString() + ';' + a2.ToString() + GetPPDString() + ';'+ dataDeCriação.Ticks.ToString() + ';' + RandomString(5) +  ".txt";
 
         }
         

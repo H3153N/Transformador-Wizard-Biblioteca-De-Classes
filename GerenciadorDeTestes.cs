@@ -11,8 +11,9 @@ namespace Biblioteca
 {
     public static class GerenciadorDeTestes
     {
-
+        static bool debug = false;
         public static event EventHandler<MediçãoEventArgs> MediçãoCompleta;
+        static DateTime tempo;
 
         public static ObservableCollection<PontoDeMedição> pontosDeMedição = [];
         /// <summary>
@@ -53,42 +54,84 @@ namespace Biblioteca
         /// <param name="canalfonte2"></param>
         /// <returns></returns>
         public static PontoDeMedição RealizarMedição(MediçãoTipo tipo, CanalFonte canalFonte1, CanalFonte canalfonte2)
-        {            
+        {
+            tempo = DateTime.Now;
+            double frequencia = Comunicação.GetFrequenciaNoGerador();
+            Debug.WriteIf(debug,"inicio frequencia " + frequencia.ToString() + "Hz");
+            Debug.WriteIf(debug, "Run");
+            
             Comunicação.RunStop(true);
             Thread.Sleep(50);
             Comunicação.AutoSet();
-            Debug.WriteLine($"AutoSet-> - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            Thread.Sleep(2000);
-
+            Debug.WriteIf(debug, "AutoSet");
+            Thread.Sleep(1900);
+            Debug.WriteIf(debug, "AutoSet fim\nInicio SetEscalaDeTempo");
             Comunicação.SetEscalaDeTempo();
-            Debug.WriteLine($"SetEscalaDeTempo-> - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            Comunicação.SetOffset(canalFonte1, 0);
+            Debug.WriteIf(debug, "SetEscalaDeTempo Fim");
+
+            Debug.WriteIf(debug, "Offset");
+
+            Comunicação.SetOffset(canalFonte1, 0);            
             Comunicação.SetOffset(canalfonte2, 0);
 
             Thread.Sleep(50);
 
-            Debug.WriteLine($"Escala canal 1-> - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+            Debug.WriteIf(debug, "SetEscalaDeVertical 1 Start");
             Comunicação.AjustarEscalaVerticalTensão(Comunicação.GetTensãoDePicoMedida(canalFonte1), canalFonte1, 2);
-            Debug.WriteLine($"Escala canal 2-> - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+            Debug.WriteIf(debug, "SetEscalaDeVertical 2 Start");
             Comunicação.AjustarEscalaVerticalTensão(Comunicação.GetTensãoDePicoMedida(canalfonte2), canalfonte2, 2);
 
             Thread.Sleep(50);
-            Debug.WriteLine($"GetFrequenciaNoGerador -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            double frequencia = Comunicação.GetFrequenciaNoGerador();
-            Debug.WriteLine($"GetFrequenciaNoGerador -> {frequencia}Hz Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-
-
-            Thread.Sleep(50);
-            Comunicação.RunStop(false);
-            Debug.WriteLine($"RunStop false -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            Thread.Sleep(1000);
             
-            if(tipo == MediçãoTipo.Admitancia)
+           
+            int delayMillis = 5 + (int)((1 / frequencia) * 1000);
+
+
+            Debug.WriteIf(debug, "STOP");
+            Comunicação.RunStop(false);
+            Debug.WriteIf(debug, "RUN SINGLE");
+
+            Comunicação.RunSingle();
+            Thread.Sleep(10);
+
+            bool runSingleRodando = true;
+            while (runSingleRodando)
             {
-                Debug.WriteLine($"GetFormaDeOnda1 -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-                CossenoCoeficientes formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalFonte1, frequencia));
-                Debug.WriteLine($"GetFormaDeOnda2 -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-                CossenoCoeficientes formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalfonte2, frequencia));
+                string resposta = Comunicação.InquerirOsciloscópio("ACQuire:AVERage:COMPlete?", true);
+                if (resposta == "0\n")
+                {
+                    Thread.Sleep(delayMillis);
+                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString());
+                }
+                else if (resposta == "1\n") 
+                {
+                    runSingleRodando = false;
+                }
+            }
+
+            
+            
+            Thread.Sleep(900);
+            if (tipo == MediçãoTipo.Admitancia)
+            {
+                Debug.WriteIf(debug, "forma de onda 1" );
+
+                CossenoCoeficientes formaDeOnda1;
+                CossenoCoeficientes formaDeOnda2;
+                try
+                {
+                    formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalFonte1, frequencia));
+                    Thread.Sleep(5);
+                    formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalfonte2, frequencia));
+                }
+                catch (ErroDeTransferência e)
+                {
+
+                    return new PontoDeMedição(-1, 0, e.FrequenciaErro, 1, -1, -1);
+                }
+                
+                Debug.WriteIf(debug, "forma de onda 2\n\n" );
+                
 
                 //                    corrente                  tensao
                 double admitancia = formaDeOnda2.Amplitude / formaDeOnda1.Amplitude;
@@ -103,11 +146,15 @@ namespace Biblioteca
                     fase += 360;
                 }
 
-                PontoDeMedição medição = new(admitancia, fase, frequencia);
-                Debug.WriteLine($"medição frequencia:{frequencia} -> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+                PontoDeMedição medição = new(admitancia, fase, frequencia,0, 
+                    Comunicação.GetTensãoDePicoMedida(canalFonte1), 
+                    Comunicação.GetTensãoDePicoMedida(canalfonte2)); 
+
+                Debug.WriteLine((new DateTime(DateTime.Now.Ticks - tempo.Ticks)).Second + " segundos\n");
                 return medição;
             }
-            return new PontoDeMedição(0, 0, 0);
+            
+            return new PontoDeMedição(0, 0, frequencia, 0, 0, 0);
         }
 
         /// <summary>
@@ -127,54 +174,96 @@ namespace Biblioteca
             {
                 try
                 {
-                    Comunicação.ConfigurarAquisiçãoOscilosóopio(10, 10000, 16);
+                    // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
+                    Comunicação.ConfigurarAquisiçãoOscilosóopio(10, 10000, 16, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, offset, true);
                     pontosDeMedição.Add(RealizarMedição(MediçãoTipo.Admitancia, canalTensao, canalCorrente));
                 }
                 catch(IOTimeoutException timeout)
                 {
-                    Debug.WriteLine($"Timeout: {timeout.Message}");
+                    Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}");
                 }
             }
             return true;
         }
 
+
+        /// <summary>                                                    \\\\\\\\\\\\\\\\\/////////////////
+        /// 
+        ///                                                              CRIAR OVERLOAD PARA ABRIR ARQUIVO ?
+        /// </summary>
+        /// <param name="pontosDeMedição"></param>                       /////////////////\\\\\\\\\\\\\\\\\
+        /// <returns></returns>
+        public static List<double> GetFrequênciasComErro(List<PontoDeMedição> pontosDeMedição)
+        {
+            List<double> frequencias = new List<double>();
+
+            foreach (var ponto in pontosDeMedição)
+            {
+                bool erroDeComunicação = ponto.houveErro == 1;
+                bool erroDeMedição = !double.IsFinite(ponto.EscalaVerticalTensao);
+
+                if (erroDeComunicação || erroDeMedição)
+                {
+                    frequencias.Add(ponto.Frequencia);
+                }
+            }
+
+            return frequencias;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="frequenciasComErro"></param>
+        /// <param name="parametros"></param>
+        /// <returns></returns>
+        public static List<PontoDeMedição> RefazerMedições(List<double>frequenciasComErro, ParametrosDaMedição parametros)
+        {
+            List<PontoDeMedição> pontosRefeitos = new List<PontoDeMedição>();
+
+            foreach (var ponto in frequenciasComErro) 
+            {
+                try
+                {
+                    Comunicação.ConfigurarAquisiçãoOscilosóopio(10, 10000, 16, AquisiçãoModo.Médias);
+                    pontosRefeitos.Add(RealizarMedição(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2));
+                }
+                catch (IOTimeoutException timeout)
+                {
+                    Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}");
+                }                
+            }
+
+            return pontosRefeitos;
+        }
+
+
+#region funções async
         public static async Task GetRespostaEmFrequenciaAsync(ParametrosDaMedição parametros)
         {
 
-            Debug.WriteLine("GetRespostaEmFrequencia-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
             double[] ppds = GetFrequencias(parametros.PontosPorDecada).ToArray();
-
             foreach (double frequencia in ppds)
             {
-                Debug.WriteLine($"ConfigurarAquisiçãoOscilosóopio->frequencia {frequencia}Hz - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-                Comunicação.ConfigurarAquisiçãoOscilosóopio(parametros.SingleCount,
-                                                        parametros.PontosDeAquisição,
-                                                        parametros.NumeroDeMédias);
-
-                Debug.WriteLine($"AlterarSinalDoGerador->frequencia {frequencia}Hz - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-                Comunicação.AlterarSinalDoGerador(parametros.FormaDeOnda, 
-                                                  frequencia,
-                                                  parametros.TensãoNoGerador,
-                                                  parametros.OffsetNoGerador, 
-                                                  true);
-
-                Debug.WriteLine($"RealizarMediçãoAsync->frequencia {frequencia}Hz - Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+                
+                Comunicação.ConfigurarAquisiçãoOscilosóopio(parametros.SingleCount, parametros.PontosDeAquisição, parametros.NumeroDeMédias, AquisiçãoModo.Médias);                                
+                Comunicação.AlterarSinalDoGerador(parametros.FormaDeOnda, frequencia, parametros.TensãoNoGerador, parametros.OffsetNoGerador, true);
+                
                 PontoDeMedição medição = await RealizarMediçãoAsync(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2);
                 OnMediçãoCompleta(new MediçãoEventArgs(medição));
             }
         }
-
         private static void OnMediçãoCompleta(MediçãoEventArgs mediçãoEventArgs)
         {
-            Debug.WriteLine($"OnMediçãoCompleta-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+            Debug.WriteIf(debug, $"OnMediçãoCompleta-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
             MediçãoCompleta?.Invoke(null, mediçãoEventArgs);
         }
-
         public static async Task<PontoDeMedição> RealizarMediçãoAsync(MediçãoTipo mediçãoTipo, CanalFonte canalFonte1, CanalFonte canalFonte2 )
         {
-            Debug.WriteLine("RealizarMediçãoAsync-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
+            Debug.WriteIf(debug, "RealizarMediçãoAsync-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
             return await Task.FromResult(RealizarMedição(mediçãoTipo, canalFonte1, canalFonte2));
         }
+#endregion
     }
 }
