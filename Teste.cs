@@ -25,6 +25,9 @@ namespace Biblioteca
 
         private static Random random = new();
 
+        public double ResistenciaShunt { get; private set; } = -1;
+        public bool TesteShunt { get; private set; } = false;
+
         #region canais
 
         public CanalFonte CanalFonte1 { get; private set; }
@@ -63,9 +66,7 @@ namespace Biblioteca
             Criação = new DateTime(long.Parse(dados[6]));
             Random = dados[7].Split('.')[0];
             PopularModuloFase();
-        }
-
-        
+        }       
 
         public Teste(string comentario, DateTime dataDeCriação, CanalFonte f1, CanalFonte f2, Atenuação a1, Atenuação a2, int[] ppd)
         {
@@ -78,8 +79,7 @@ namespace Biblioteca
 
             NomeArquivo = comentario + ';' + ((int)f1).ToString() + ';' + ((int)f2).ToString() +';' + a1.ToString() + ';' + a2.ToString() + GetPPDString() + ';'+ dataDeCriação.Ticks.ToString() + ';' + RandomString(5) +  ".txt";
 
-        }
-        
+        }        
         public static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -92,7 +92,6 @@ namespace Biblioteca
             }
             return codigo;
         }
-
         public void PopularModuloFase()
         {
             ModuloFase = GerenciadorDeArquivos.GetPontos(Path).Result;

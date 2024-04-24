@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using OxyPlot;
@@ -59,6 +60,8 @@ namespace Biblioteca
             return testes;
         }
 
+        
+
         public static void AddPontoEmTeste(PontoDeMedição ponto, string pathTeste)
         {
             File.AppendAllText(pathTeste, ponto.Frequencia.ToString() + ';' + ponto.Admitancia.ToString() + ';' + ponto.Fase.ToString() + Environment.NewLine);
@@ -94,11 +97,50 @@ namespace Biblioteca
                 }
                 catch (Exception e)
                 {
+                    throw;
                     Debug.WriteLine("GET PONTOS SALVOS ERRO: " + e.Message);
                 }                
             }
 
             return todosOsPontos;
+        }
+
+        public static void SalvarPontosCorrigidos(List<PontoDeMedição> pontosAlterados, List<PontoDeMedição>pontosOriginais, Teste teste)
+        {
+            List<int> indices = new List<int>();
+
+            for (int i = 0;  i < pontosOriginais.Count; i++)
+            {
+                for(int j = 0; j < pontosAlterados.Count; j++)
+                {
+                    if (pontosOriginais[i].Frequencia == pontosAlterados[j].Frequencia)
+                    {
+                        indices.Add(i);
+                    }
+                }
+            }
+
+            for (int i = 0;i < pontosAlterados.Count ;i++)
+            {
+                pontosOriginais[indices[i]] = pontosAlterados[i];
+            }
+
+            GerenciadorDeTestes.pontosDeMedição.Clear();
+
+
+            foreach (var item in pontosOriginais)
+            {
+                GerenciadorDeTestes.pontosDeMedição.Add(item);
+            }
+
+            //TA MUITO BAGUNÇADO, REMOVER VARIAVEL ESTATICA NA CLASSE GERENCIADOR DE TESTE, PADRONIZAR PARAMETROS DAS FUNCOES
+            //SALVAR OS DADOS NAO DEVE DEPENDER DA CLASSE DE TESTES
+
+            List<string> path = teste.Path.Split('\\').ToList();
+            path.RemoveAt(path.Count - 1);
+            string localEnsaio = String.Join("\\", path);
+
+            SalvarDados(teste, localEnsaio);
         }
         
         public static Task<ModuloFase> GetPontos(string path)
@@ -147,9 +189,19 @@ namespace Biblioteca
             
         }
 
+        
+
+
+        /// <summary>
+        /// NAO ERA PRA PRECISAR DE UMA STRING COM O LOCAL DO ENSAIO, ESSA INFORMACAO JA TA NO TESTE
+        /// </summary>
+        /// <param name="teste"></param>
+        /// <param name="localEnsaio"></param>
         public static void SalvarDados(Teste teste,string localEnsaio)
         {
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
+
+            File.WriteAllText(caminho, String.Empty);
             foreach (var item in GerenciadorDeTestes.pontosDeMedição)
             {
                 string  linha  = item.Frequencia.ToString(CultureInfo.InvariantCulture)             + '\t';
