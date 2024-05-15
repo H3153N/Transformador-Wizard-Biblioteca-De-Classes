@@ -11,18 +11,18 @@ namespace Biblioteca
 {
     public class FormaDeOnda
     {
-        public string? HeaderString { get; private set; }
+        public string? HeaderString { get; set; }
 
         /// <summary>
         /// Dupla contendo duas listas, a primeira contém a forma de onda e a segunda contém os pontos de tempo
         /// </summary>
-        public Tuple<double[], double[]> Dados { get; private set; } 
+        public Tuple<double[], double[]> Dados { get; set; } 
 
-        public double XStart { get; private set; }
-        public double XStop { get; private set; }
-        public int NumeroDePontos { get; private set; }
-        public int? NumValoresPorAmostra { get; private set; }
-        public double Frequencia { get; private set; }
+        public double XStart { get; set; }
+        public double XStop { get; set; }
+        public int NumeroDePontos { get; set; }
+        public int? NumValoresPorAmostra { get; set; }
+        public double Frequencia { get; set; }
 
         /// <summary>
         /// 
@@ -71,20 +71,46 @@ namespace Biblioteca
             Dados = Tuple.Create(doubles.ToArray(), pontosDeTempo.ToArray());
         }
 
-
-        public string GetPontosComoString()
+        public FormaDeOnda(string header, string dados)
         {
-            string stringCompleta = "";
+            HeaderString = header;
 
+            var headerDados = header.Split(',');
+            XStart = double.Parse(headerDados[0], CultureInfo.InvariantCulture);
+            XStop = double.Parse(headerDados[1], CultureInfo.InvariantCulture);
+            NumeroDePontos = int.Parse(headerDados[2]);
+            NumValoresPorAmostra = int.Parse(headerDados[3]);
 
-            stringCompleta += Dados.Item1[0].ToString("G").Replace(',', '.') +','+ Dados.Item2[0].ToString("G").Replace(',', '.');
-            
-            
-            for (int i = 1; i < Dados.Item1.Length; i++)
+            var numerosStrings = dados.Split(',');
+            List<double> doubles = new List<double>();
+
+            foreach (var numerosString in numerosStrings)
             {
-                stringCompleta += Dados.Item1[i].ToString("G").Replace(',', '.') + ',' + Dados.Item2[i].ToString("G").Replace(',', '.') + Environment.NewLine ;
+
+                try
+                {
+                    doubles.Add(double.Parse(numerosString, CultureInfo.InvariantCulture));
+                }
+                catch (Exception e)
+                {
+
+                    throw new ErroDeTransferência {  };
+                }
             }
-            return stringCompleta;
+
+
+            List<double> pontosDeTempo = new List<double>();
+
+            double deltaT = (XStop - XStart) / (NumeroDePontos - 1);
+
+            for (int i = 0; i < NumeroDePontos; i++)
+            {
+                pontosDeTempo.Add(deltaT * i + XStart);
+            }
+
+            Dados = Tuple.Create(doubles.ToArray(), pontosDeTempo.ToArray());
         }
+
+
     }
 }

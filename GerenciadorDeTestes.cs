@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -50,10 +51,10 @@ namespace Biblioteca
         /// 
         /// </summary>
         /// <param name="tipo"></param>
-        /// <param name="canalFonte1"></param>
-        /// <param name="canalfonte2"></param>
+        /// <param name="canalTensão"></param>
+        /// <param name="canalCorrente"></param>
         /// <returns></returns>
-        public static PontoDeMedição RealizarMedição(MediçãoTipo tipo, CanalFonte canalFonte1, CanalFonte canalfonte2, bool testeCauteloso)
+        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt)
         {
             tempo = DateTime.Now;
             double frequencia = Comunicação.GetFrequenciaNoGerador();
@@ -76,8 +77,8 @@ namespace Biblioteca
 
             Debug.WriteIf(debug, "Offset");
 
-            Comunicação.SetOffset(canalFonte1, 0);            
-            Comunicação.SetOffset(canalfonte2, 0);
+            Comunicação.SetOffset(canalTensão, 0);            
+            Comunicação.SetOffset(canalCorrente, 0);
 
             Thread.Sleep(50);
 
@@ -85,9 +86,9 @@ namespace Biblioteca
 
             int delay = 25; if (testeCauteloso)  delay = 50; 
 
-            Comunicação.AjustarEscalaVertical( canalFonte1, 2, delay);
+            Comunicação.AjustarEscalaVertical( canalTensão, 2, delay);
             Debug.WriteIf(debug, "SetEscalaDeVertical 2 ");
-            Comunicação.AjustarEscalaVertical( canalfonte2, 2, delay);
+            Comunicação.AjustarEscalaVertical( canalCorrente, 2, delay);
 
             Thread.Sleep(50);
             
@@ -136,34 +137,59 @@ namespace Biblioteca
                 CossenoCoeficientes formaDeOnda2;
                 try
                 {
-                    formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalFonte1, frequencia));
+                    formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalTensão, frequencia));
                     Thread.Sleep(5);
-                    formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalfonte2, frequencia));
+                    formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalCorrente, frequencia));
 
                     Debug.WriteIf(debug, "forma de onda 2\n\n");
 
-
-                    //                    corrente                  tensao
-                    double admitancia = formaDeOnda2.Amplitude / formaDeOnda1.Amplitude;
-                    double fase = formaDeOnda2.Fase - formaDeOnda1.Fase;
-
-                    if (fase > 180)
+                    if (!usaShunt)
                     {
-                        fase -= 360;
-                    }
-                    if (fase < -180)
+                        //                    corrente                  tensao
+                        double admitancia = formaDeOnda2.Amplitude / formaDeOnda1.Amplitude;
+                        double fase = formaDeOnda2.Fase - formaDeOnda1.Fase;
+
+                        if (fase > 180)
+                        {
+                            fase -= 360;
+                        }
+                        if (fase < -180)
+                        {
+                            fase += 360;
+                        }
+
+                        PontoDeMedição medição = new(admitancia, fase, frequencia, 0,
+                            Comunicação.GetTensãoDePicoMedida(canalTensão),
+                            Comunicação.GetTensãoDePicoMedida(canalCorrente));
+
+                        Debug.WriteLine((new DateTime(DateTime.Now.Ticks - tempo.Ticks)).Second + " segundos\n");
+                        return medição;
+                    }                    
+                    else 
                     {
-                        fase += 360;
+                        double real1 = formaDeOnda1.Amplitude * Math.Cos(formaDeOnda1.Fase * Math.PI / 180D);
+                        double imaginario1 = formaDeOnda1.Amplitude * Math.Sin(formaDeOnda1.Fase * Math.PI / 180D);
+
+                        Complex tensãoNaSaidaDaFonte = new Complex(real1, imaginario1);
+
+                        double real2 = formaDeOnda2.Amplitude * Math.Cos(formaDeOnda2.Fase * Math.PI / 180D);
+                        double imaginario2 = formaDeOnda2.Amplitude * Math.Sin(formaDeOnda2.Fase * Math.PI / 180D);
+
+                        Complex tensãoShunt = new Complex(real2, imaginario2);
+
+                        Complex tensãoTransformador = tensãoNaSaidaDaFonte - tensãoShunt;
+
+                        Complex correnteShunt = tensãoShunt / Rshunt;
+
+                        Complex admitanciaTransformador = correnteShunt / tensãoTransformador; 
+
+                        PontoDeMedição medição = new(admitanciaTransformador.Magnitude, admitanciaTransformador.Phase, frequencia, 0,
+                            Comunicação.GetTensãoDePicoMedida(canalTensão),
+                            Comunicação.GetTensãoDePicoMedida(canalCorrente));
+
+                        Debug.WriteLine((new DateTime(DateTime.Now.Ticks - tempo.Ticks)).Second + " segundos\n");
+                        return medição;
                     }
-
-                    PontoDeMedição medição = new(admitancia, fase, frequencia, 0,
-                        Comunicação.GetTensãoDePicoMedida(canalFonte1),
-                        Comunicação.GetTensãoDePicoMedida(canalfonte2));
-
-                    Debug.WriteLine((new DateTime(DateTime.Now.Ticks - tempo.Ticks)).Second + " segundos\n");
-                    return medição;
-
-
                 }
                 catch (Exception e)
                 {
@@ -191,7 +217,7 @@ namespace Biblioteca
         /// <param name="offset"></param>
         /// <param name="frequencias"></param>
         /// <returns></returns>
-        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso)
+        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia)
         {
             pontosDeMedição.Clear();
             
@@ -202,15 +228,15 @@ namespace Biblioteca
                 {
                     // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
-                    Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, offset, true);
-                    pontosDeMedição.Add(RealizarMedição(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso));
+                    Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
+                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia));
                 }
                 catch(IOTimeoutException timeout)
                 {
                     Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}");
                 }
             }
-            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, offset, false);
+            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);
             return true;
         }
 
@@ -240,6 +266,73 @@ namespace Biblioteca
             return frequencias;
         }
 
+
+
+        public static void PrepararOscilosCópioParaImpulso(double janela, double offset,int medias, List<Canal> canaisAtivos)
+        {
+            Comunicação.RunStop(true);            
+            Comunicação.ConfigurarAquisiçãoOsciloscópio(1, 10000, medias, AquisiçãoModo.Médias);
+            Comunicação.AutoSet();
+            Thread.Sleep(1200);
+
+            Comunicação.SetEscalaDeTempo(janela, offset);
+
+            foreach (var canal in canaisAtivos)
+            {
+                Comunicação.AjustarEscalaVertical(canal.Fonte, 3, 25);
+            }
+        }
+
+        public static RespostaAoImpulso MedirRespostaImpulsiva(ParametrosTesteImpulsivo parametros, bool TelaAjustada)
+        {
+            //ativar sinal
+            Comunicação.AlterarSinalDoGerador(TiposDeOnda.TipoParaString(parametros.FunçãoTipo), 
+                                              parametros.Frequencia,
+                                              parametros.Amplitude, 
+                                              parametros.TensãoTipo,
+                                              parametros.Offset,
+                                              true);
+
+            
+
+            Comunicação.SetEscalaDeTempo(parametros.JanelaDeMedição, 1);
+            Comunicação.ConfigurarAquisiçãoOsciloscópio(1, 10000, parametros.NumeroDeMédias, AquisiçãoModo.Médias);
+
+            Comunicação.RunSingle();
+            Thread.Sleep(10);
+
+            int delayMillis = 5 + (int)((1 / parametros.Frequencia) * 1000);
+
+            bool runSingleRodando = true;
+            while (runSingleRodando)
+            {
+                string resposta = Comunicação.InquerirOsciloscópio("ACQuire:AVERage:COMPlete?", true);
+                if (resposta == "0\n")
+                {
+                    Thread.Sleep(delayMillis);
+                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString());
+                }
+                else if (resposta == "1\n")
+                {
+                    runSingleRodando = false;
+                }
+            }
+
+            
+
+            foreach (Canal canal in parametros.CanaisUsados)
+            {
+                canal.FormaDeOnda = Comunicação.GetFormaDeOnda(canal.Fonte, parametros.Frequencia);
+            }
+
+            RespostaAoImpulso respostaAoImpulso = new RespostaAoImpulso(parametros.Comentário, parametros);
+
+            return respostaAoImpulso;
+        }
+
+
+
+
         /// <summary>
         /// SUBSTITUIR PARAMETROS DO GERADOR POR VALORES MALEAVEIS
         /// </summary>
@@ -254,9 +347,9 @@ namespace Biblioteca
             {
                 try
                 {
-                    Comunicação.AlterarSinalDoGerador("SIN", ponto, 10, 0, true);
+                    Comunicação.AlterarSinalDoGerador("SIN", ponto, 10, Tensão.Vpp, 0, true);
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
-                    pontosRefeitos.Add(RealizarMedição(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true));
+                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt));
                 }
                 catch (IOTimeoutException timeout)
                 {
@@ -267,7 +360,7 @@ namespace Biblioteca
             return pontosRefeitos;
         }
 
-        public static ParametrosDaMedição GetParametrosDeMedição(Teste teste)
+        public static ParametrosDaMedição GetParametrosDeMedição(RespostaEmFrequência teste)
         {
             return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2, teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,
                                            10, 0, "SIN", 10, 10000, 16, teste.PontosPorDecada, MediçãoTipo.Admitancia);
@@ -275,30 +368,7 @@ namespace Biblioteca
 
 
         #region funções async
-        public static async Task GetRespostaEmFrequenciaAsync(ParametrosDaMedição parametros)
-        {
-
-            double[] ppds = GetFrequencias(parametros.PontosPorDecada).ToArray();
-            foreach (double frequencia in ppds)
-            {
-                
-                Comunicação.ConfigurarAquisiçãoOsciloscópio(parametros.SingleCount, parametros.PontosDeAquisição, parametros.NumeroDeMédias, AquisiçãoModo.Médias);                                
-                Comunicação.AlterarSinalDoGerador(parametros.FormaDeOnda, frequencia, parametros.TensãoNoGerador, parametros.OffsetNoGerador, true);
-                
-                PontoDeMedição medição = await RealizarMediçãoAsync(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2);
-                OnMediçãoCompleta(new MediçãoEventArgs(medição));
-            }
-        }
-        private static void OnMediçãoCompleta(MediçãoEventArgs mediçãoEventArgs)
-        {
-            Debug.WriteIf(debug, $"OnMediçãoCompleta-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            MediçãoCompleta?.Invoke(null, mediçãoEventArgs);
-        }
-        public static async Task<PontoDeMedição> RealizarMediçãoAsync(MediçãoTipo mediçãoTipo, CanalFonte canalFonte1, CanalFonte canalFonte2 )
-        {
-            Debug.WriteIf(debug, "RealizarMediçãoAsync-> Thread: " + Thread.CurrentThread.ManagedThreadId.ToString());
-            return await Task.FromResult(RealizarMedição(mediçãoTipo, canalFonte1, canalFonte2, false));
-        }
+        
 #endregion
     }
 }

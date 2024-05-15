@@ -24,6 +24,9 @@ namespace Biblioteca
         public int PontosDeAquisição { get; private set; } = pontosDeAquisição;
         public int NumeroDeMédias { get; private set; } = numeroDeMédias;
 
+        public bool UsaShunt { get; set; }
+        public double ResistenciaShunt { get; set; }
+
         public List<int> PontosPorDecada { get; private set; } = pontosPorDecada;
     }
 }

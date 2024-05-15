@@ -8,7 +8,9 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using OxyPlot;
 
 namespace Biblioteca
@@ -46,35 +48,50 @@ namespace Biblioteca
             }
             return ensaios;
         }
-        public static ObservableCollection<Teste> GetTestes(string pastaTestes)
+        public static ObservableCollection<RespostaEmFrequência> GetRespostaEmFrequência(string pastaTestes)
         {
-            
-            ObservableCollection<Teste> testes = [];
+            ObservableCollection<RespostaEmFrequência> testes = [];
+            string[] testesStrings = Directory.GetFiles(pastaTestes);
+            foreach (string testesString in testesStrings)
+            {
+                //comentario;datetime;random
+                try
+                {
+                    string dados = File.ReadAllText(testesString);
+                    testes.Add(JsonConvert.DeserializeObject<RespostaEmFrequência>(dados));
+                }
+                catch (Exception e )
+                {
+                    Debug.WriteLine(e);
+                    throw;
+                }
+                
+            }
+            return testes;
+
+
+
+            /*
+            ObservableCollection<RespostaEmFrequência> testes = [];
             string[] testesStrings = Directory.GetFiles(pastaTestes);
             foreach (string testesString in testesStrings)
             {
                 //comentario;datetime;random
 
-                testes.Add(new Teste(testesString));
+                testes.Add(new RespostaEmFrequência(testesString));
             }
             return testes;
-        }
-
-        
-
-        public static void AddPontoEmTeste(PontoDeMedição ponto, string pathTeste)
-        {
-            File.AppendAllText(pathTeste, ponto.Frequencia.ToString() + ';' + ponto.Admitancia.ToString() + ';' + ponto.Fase.ToString() + Environment.NewLine);
+            */
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="path">caminho absoluto do arquivo contendo os dados do teste</param>
-        /// <returns></returns>
+        //será inutilizado
         public static List<PontoDeMedição> GetPontosSalvos(string path)
         {
+
+            return null;
+
+            /*
             List<string> linhas = File.ReadAllLines(path).ToList();
             List<PontoDeMedição> todosOsPontos = new List<PontoDeMedição>();
 
@@ -103,9 +120,33 @@ namespace Biblioteca
             }
 
             return todosOsPontos;
-        }
 
-        public static void SalvarPontosCorrigidos(List<PontoDeMedição> pontosAlterados, List<PontoDeMedição>pontosOriginais, Teste teste)
+            */
+        }
+        public static List<PontoDeMedição> MergirPontosCorrigidosNaListaOriginal(List<PontoDeMedição> pontosAlterados, List<PontoDeMedição> pontosOriginais)
+        {
+            List<int> indices = new List<int>();
+
+            for (int i = 0; i < pontosOriginais.Count; i++)
+            {
+                for (int j = 0; j < pontosAlterados.Count; j++)
+                {
+                    if (pontosOriginais[i].Frequencia == pontosAlterados[j].Frequencia)
+                    {
+                        indices.Add(i);
+                    }
+                }
+            }
+
+            for (int i = 0; i < pontosAlterados.Count; i++)
+            {
+                pontosOriginais[indices[i]] = pontosAlterados[i];
+            }
+
+            return pontosOriginais;
+        }
+        //será inutilizado
+        public static void SalvarPontosCorrigidos(List<PontoDeMedição> pontosAlterados, List<PontoDeMedição>pontosOriginais, RespostaEmFrequência teste)
         {
             List<int> indices = new List<int>();
 
@@ -142,7 +183,7 @@ namespace Biblioteca
 
             SalvarDados(teste, localEnsaio);
         }
-        
+        //será inutilizado
         public static Task<ModuloFase> GetPontos(string path)
         {            
             List<DataPoint> modulo = new List<DataPoint>();
@@ -182,7 +223,7 @@ namespace Biblioteca
         }
 
         //MUDAR PARA "CRIAR TESTE"?
-        public static void SalvarTeste(Teste teste, string localEnsaio)
+        public static void CriarTeste(RespostaEmFrequência teste, string localEnsaio)
         {
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
             File.Create(caminho).Close();
@@ -197,23 +238,33 @@ namespace Biblioteca
         /// </summary>
         /// <param name="teste"></param>
         /// <param name="localEnsaio"></param>
-        public static void SalvarDados(Teste teste,string localEnsaio)
+        public static void SalvarDados(RespostaEmFrequência teste,string localEnsaio)
         {
             string caminho = Path.Combine(localEnsaio, teste.NomeArquivo);
+            teste.Path = caminho;
+            string dados = JsonConvert.SerializeObject(teste);
+            Salvar(dados, caminho);
+        }
 
-            File.WriteAllText(caminho, String.Empty);
-            foreach (var item in GerenciadorDeTestes.pontosDeMedição)
+        public static void SalvarDados(RespostaEmFrequência teste)
+        {
+            string dados = JsonConvert.SerializeObject(teste);
+            Salvar(dados, teste.Path);
+        }
+
+        public static void SalvarDados(RespostaAoImpulso teste)
+        {
+            string dados = JsonConvert.SerializeObject(teste);
+            Salvar(dados, teste.Path);
+        }
+
+        static void Salvar(string dados, string caminho)
+        {
+            if (!File.Exists(caminho))
             {
-                string  linha  = item.Frequencia.ToString(CultureInfo.InvariantCulture)             + '\t';
-                        linha += item.Admitancia.ToString(CultureInfo.InvariantCulture)             + '\t';
-                        linha += item.Fase.ToString(CultureInfo.InvariantCulture)                   + '\t';
-                        linha += item.houveErro.ToString(CultureInfo.InvariantCulture)              + '\t';
-                        linha += item.EscalaVerticalTensao.ToString(CultureInfo.InvariantCulture)   + '\t';
-                        linha += item.EscalaVerticalCorrente.ToString(CultureInfo.InvariantCulture) + Environment.NewLine;
-
-
-                File.AppendAllText(caminho, linha);
+                File.Create(caminho).Close();
             }
+            File.WriteAllText(caminho, dados);
         }
 
         public static Tuple<string, string> LerVisaString()

@@ -43,4 +43,47 @@ namespace Biblioteca
         AltaResolução = 0,
         Médias = 1    
     }
+
+    public enum Função
+    {
+        Senoidal    = 0,
+        Quadrada    = 1,
+        Triangular  = 2,
+        Pulso       = 3,
+        Ruído       = 4,
+        DC          = 5,
+        Arbitrária  = 6
+    }
+    public enum Tensão
+    {
+        Vpp = 0,
+        Vrms= 1,
+        dBm = 2,
+    }
+
+    public enum Gatilho
+    {        
+        Subida,
+        Descida,
+        Ambos
+    }
+
+    public enum MultiplicadorNegativo
+    {
+        sem,
+        mili,
+        micro,
+        nano
+    }
+
+    public enum MultiplicadorPositivo
+    {
+        sem,
+        kilo,
+        Mega
+    }
+
+
+
+    
 }

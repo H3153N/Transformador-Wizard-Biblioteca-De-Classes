@@ -18,7 +18,7 @@ namespace Biblioteca
 
         //TITULO;TIPO;DATE-TIME
         public string Path { get; private set; } = string.Empty;
-        public ObservableCollection<Teste> Testes { get; private set; } = [];
+        public ObservableCollection<RespostaEmFrequência> Testes { get; private set; } = [];
         public string Titulo { get; private set; } = string.Empty;
         public DateTime Criação { get; private set; } = DateTime.MinValue;
         public string NomePasta { get; private set; }
@@ -41,7 +41,7 @@ namespace Biblioteca
             Tipo = (EnsaioTipo)Enum.Parse(typeof(EnsaioTipo), dados[1]);
             Criação = new DateTime(long.Parse(dados[2]));
 
-            Testes = GerenciadorDeArquivos.GetTestes(Path);
+            Testes = GerenciadorDeArquivos.GetRespostaEmFrequência(Path);
         }  
         public Ensaio(string titulo, EnsaioTipo tipo, DateTime dateTime)
         {
@@ -59,7 +59,7 @@ namespace Biblioteca
         public void AtualizarTestes()
         {            
             Testes.Clear();           
-            Testes = GerenciadorDeArquivos.GetTestes(Path);
+            Testes = GerenciadorDeArquivos.GetRespostaEmFrequência(Path);
         }
     }
 }
