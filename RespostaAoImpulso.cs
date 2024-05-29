@@ -18,22 +18,31 @@ namespace Biblioteca
         
 
         public List<Canal> Canais{ get; set; }
-        ParametrosTesteImpulsivo ParametrosDoImpulso { get; set; }
+        public ParametrosTesteImpulsivo ParametrosDoImpulso { get; set; }
 
         public RespostaAoImpulso() 
         { 
         
         }
 
-        public RespostaAoImpulso(string comentario, ParametrosTesteImpulsivo parametros)
+        public RespostaAoImpulso(ParametrosTesteImpulsivo parametros, string path)
         {
+            ParametrosDoImpulso = parametros;
             this.Canais = parametros.CanaisUsados;
-            this.Comentário = comentario;
-            this.ParametrosDoImpulso = parametros;
+            this.Comentário = parametros.Comentário;          
+            this.Path = path;
 
-            NomeArquivo = comentario + " "+ DateTime.Now + " " + RandomString(5) + ".json";
+            NomeArquivo = Comentário + " "+ DateTime.Now.Ticks + " " + RandomString(5) + ".json";
         }
-          
+
+        public RespostaAoImpulso(ParametrosTesteImpulsivo parametros)
+        {
+            ParametrosDoImpulso = parametros;
+            this.Canais = parametros.CanaisUsados;
+            this.Comentário = parametros.Comentário;
+            NomeArquivo = Comentário + " " + DateTime.Now + " " + RandomString(5) + ".json";
+        }
+
         public static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

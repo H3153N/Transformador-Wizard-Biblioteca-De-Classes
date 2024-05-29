@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OxyPlot;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace Biblioteca
         /// Dupla contendo duas listas, a primeira contém a forma de onda e a segunda contém os pontos de tempo
         /// </summary>
         public Tuple<double[], double[]> Dados { get; set; } 
+        public List<DataPoint> Traço { get; set; }
 
         public double XStart { get; set; }
         public double XStop { get; set; }
@@ -44,6 +46,7 @@ namespace Biblioteca
             var numerosStrings = dados.Split(',');
             List<double> doubles = new List<double>();
 
+
             foreach (var numerosString in numerosStrings)
             {
 
@@ -70,7 +73,6 @@ namespace Biblioteca
 
             Dados = Tuple.Create(doubles.ToArray(), pontosDeTempo.ToArray());
         }
-
         public FormaDeOnda(string header, string dados)
         {
             HeaderString = header;
@@ -110,7 +112,28 @@ namespace Biblioteca
 
             Dados = Tuple.Create(doubles.ToArray(), pontosDeTempo.ToArray());
         }
+        public FormaDeOnda()
+        {
 
+        }
 
+        public void CriarPontos()
+        {
+            if (Traço == null)
+            {
+                Traço = new List<DataPoint>();
+            }
+            else
+            {
+                Traço.Clear();
+            }
+
+            int tamanho = Dados.Item1.Length;
+
+            for (int i = 0; i < tamanho; i++)
+            {
+                Traço.Add(new DataPoint(Dados.Item2[i], Dados.Item1[i]));
+            }
+        }
     }
 }

@@ -83,6 +83,14 @@ namespace Biblioteca
         Mega
     }
 
+    public enum Formato
+    {
+        Dispositivo,
+        Ensaio,        
+        TesteFrequencia,
+        TesteTempo
+    }
+
 
 
     

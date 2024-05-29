@@ -84,16 +84,19 @@ namespace Biblioteca
 
         public void CarregarModuloFase()
         {
-            List<DataPoint> modulo = new List<DataPoint>();
-            List<DataPoint> fase = new List<DataPoint>();
-
-            foreach (var item in medições)
+            if (medições != null)
             {
-                modulo.Add(new(item.Frequencia, item.Admitancia));
-                fase.Add(new(item.Frequencia, item.Fase));
-            }
+                List<DataPoint> modulo = new List<DataPoint>();
+                List<DataPoint> fase = new List<DataPoint>();
 
-            this.ModuloFase = new ModuloFase(modulo, fase);
+                foreach (var item in medições)
+                {
+                    modulo.Add(new(item.Frequencia, item.Admitancia));
+                    fase.Add(new(item.Frequencia, item.Fase));
+                }
+
+                this.ModuloFase = new ModuloFase(modulo, fase);
+            }
         }
 
         public void AnularModuloFase()

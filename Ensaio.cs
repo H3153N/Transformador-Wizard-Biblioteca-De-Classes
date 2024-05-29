@@ -18,7 +18,7 @@ namespace Biblioteca
 
         //TITULO;TIPO;DATE-TIME
         public string Path { get; private set; } = string.Empty;
-        public ObservableCollection<RespostaEmFrequência> Testes { get; private set; } = [];
+        public List<object> Testes { get; private set; } = [];
         public string Titulo { get; private set; } = string.Empty;
         public DateTime Criação { get; private set; } = DateTime.MinValue;
         public string NomePasta { get; private set; }
@@ -41,7 +41,15 @@ namespace Biblioteca
             Tipo = (EnsaioTipo)Enum.Parse(typeof(EnsaioTipo), dados[1]);
             Criação = new DateTime(long.Parse(dados[2]));
 
-            Testes = GerenciadorDeArquivos.GetRespostaEmFrequência(Path);
+            if (Tipo == EnsaioTipo.Impulso)
+            {
+                Testes = GerenciadorDeArquivos.GetTeste<RespostaAoImpulso>(Path).ConvertAll<object>(item => (object)item);
+            }
+            else
+            {
+                Testes = GerenciadorDeArquivos.GetTeste<RespostaEmFrequência>(Path).ConvertAll<object>(item => (object)item);
+            }
+            
         }  
         public Ensaio(string titulo, EnsaioTipo tipo, DateTime dateTime)
         {
@@ -58,8 +66,16 @@ namespace Biblioteca
         /// <returns></returns>
         public void AtualizarTestes()
         {            
-            Testes.Clear();           
-            Testes = GerenciadorDeArquivos.GetRespostaEmFrequência(Path);
+            Testes.Clear();
+
+            if (Tipo == EnsaioTipo.Impulso)
+            {
+                Testes = GerenciadorDeArquivos.GetTeste<RespostaAoImpulso>(Path).ConvertAll<object>(item => (object)item);
+            }
+            else
+            {
+                Testes = GerenciadorDeArquivos.GetTeste<RespostaEmFrequência>(Path).ConvertAll<object>(item => (object)item);
+            }
         }
     }
 }

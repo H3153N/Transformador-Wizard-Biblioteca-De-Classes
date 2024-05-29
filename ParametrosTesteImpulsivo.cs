@@ -15,10 +15,10 @@ namespace Biblioteca
         public Tensão TensãoTipo { get; set; }
         public double Offset     { get; set; }
 
-        
-
         public int NumeroDeMédias           { get; set; }//para o osciloscopio
         public double JanelaDeMedição       { get; set; }
+        public double Gatilho { get; set; }
+        public int Amostras { get; set; }
         public List<Canal> CanaisUsados     { get; set; } = new List<Canal>();
 
         public int numeroDePulsos { get; set; }//para o gerador

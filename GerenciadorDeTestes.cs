@@ -77,8 +77,8 @@ namespace Biblioteca
 
             Debug.WriteIf(debug, "Offset");
 
-            Comunicação.SetOffset(canalTensão, 0);            
-            Comunicação.SetOffset(canalCorrente, 0);
+            Comunicação.SetOffsetVertical(canalTensão, 0);            
+            Comunicação.SetOffsetVertical(canalCorrente, 0);
 
             Thread.Sleep(50);
 
@@ -325,7 +325,7 @@ namespace Biblioteca
                 canal.FormaDeOnda = Comunicação.GetFormaDeOnda(canal.Fonte, parametros.Frequencia);
             }
 
-            RespostaAoImpulso respostaAoImpulso = new RespostaAoImpulso(parametros.Comentário, parametros);
+            RespostaAoImpulso respostaAoImpulso = new RespostaAoImpulso(parametros);
 
             return respostaAoImpulso;
         }
