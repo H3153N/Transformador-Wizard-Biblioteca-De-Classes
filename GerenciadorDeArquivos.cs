@@ -177,5 +177,28 @@ namespace Biblioteca
             string texto = osciloscopio + Environment.NewLine + gerador;
             File.WriteAllText(caminho, texto);
         }
+
+        public static List<double> GetPontosFormaDeOndaArbitrária(string path)
+        {
+            List<double> numeros = new List<double>();
+            string dados = File.ReadAllText(path).Replace(",",".");
+            string[] valores = dados.Split("\r\n");
+            foreach (var item in valores)
+            {
+                if (double.TryParse(item, CultureInfo.InvariantCulture, out double numero))
+                {
+                    numeros.Add(numero);
+                }
+            }
+            return numeros;
+        }
+
+        public static string GetStringFormaDeOndaArbitrária(string path)
+        {            
+            string dados = File.ReadAllText(path).Replace(",", ".").Replace("\r\n", ",");
+            // string[] valores = dados.Split("\r\n");
+            
+            return dados.TrimEnd(',');
+        }
     }
 }

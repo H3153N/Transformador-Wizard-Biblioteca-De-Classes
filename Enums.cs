@@ -8,10 +8,10 @@ namespace Biblioteca
 {
     public enum Atenuação
     {
-        X1 =      0,
-        X10=      1,
-        X100 =    2,
-        X1000 =   3
+        X1 =      1,
+        X10=      10,
+        X100 =    100,
+        X1000 =   1000
     }
 
     public enum CanalFonte

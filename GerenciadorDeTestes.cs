@@ -86,9 +86,9 @@ namespace Biblioteca
 
             int delay = 25; if (testeCauteloso)  delay = 50; 
 
-            Comunicação.AjustarEscalaVertical( canalTensão, 2, delay);
+            Comunicação.AjustarEscalaVertical( canalTensão, 2, delay, true);
             Debug.WriteIf(debug, "SetEscalaDeVertical 2 ");
-            Comunicação.AjustarEscalaVertical( canalCorrente, 2, delay);
+            Comunicação.AjustarEscalaVertical( canalCorrente, 2, delay, true);
 
             Thread.Sleep(50);
             
@@ -222,7 +222,7 @@ namespace Biblioteca
             pontosDeMedição.Clear();
             
 
-            foreach (int i in frequencias)
+            foreach (double i in frequencias)
             {
                 try
                 {
@@ -279,7 +279,7 @@ namespace Biblioteca
 
             foreach (var canal in canaisAtivos)
             {
-                Comunicação.AjustarEscalaVertical(canal.Fonte, 3, 25);
+                Comunicação.AjustarEscalaVertical(canal.Fonte, 3, 25, true);
             }
         }
 
@@ -367,8 +367,6 @@ namespace Biblioteca
         }
 
 
-        #region funções async
-        
-#endregion
+      
     }
 }

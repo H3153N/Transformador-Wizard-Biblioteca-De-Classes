@@ -166,13 +166,17 @@ namespace Biblioteca
         /// <param name="canal">canal do osciloscópio</param>
         /// <param name="numeroIterações">numero de ajustes feitos, mais ajustes levam a medições mais precisas porém aumentam o tempo das medições de maneira significativa, recomendado de 3 a 5</param>
         /// <exception cref="Exception">especificar</exception>
-        public static void AjustarEscalaVertical(CanalFonte canal, int numeroIterações, int delayEntreAjustes)
+        public static void AjustarEscalaVertical(CanalFonte canal, int numeroIterações, int delayEntreAjustes, bool ajustarOffset)
         {
             int numeroDeQuadrados = 4;
             int numTentativasReiterativas = 5;
-            
+
             //delay = 25ms
-            SetOffsetVertical(canal, 0);
+            if (ajustarOffset)
+            {
+                SetOffsetVertical(canal, 0);
+            }
+            
             Debug.WriteLine("Set offset");
 
             Thread.Sleep(delayEntreAjustes);
@@ -254,15 +258,32 @@ namespace Biblioteca
             }
         }
 
-        public static void AjustarEscalaParaImpulso(CanalFonte canal)
+        public static void AjustarEscalaParaImpulso(List<Canal> canaisAtivos)
         {
             //autoset
             //offset vertical zero todos os canais
-            //ajuste normal de escala canais de corrente
+            //ajuste normal de escala todos os canais
             //offset de -Vp no canal de tensão
             //dobrar escala vertical no canal de tensão
             //escala de tempo
             //offset de tempo
+            Comunicação.AutoSet();
+            Thread.Sleep(2000);
+
+            foreach (var canal in canaisAtivos)
+            {
+                Comunicação.AjustarEscalaVertical(canal.Fonte, 2, 20, true);
+                if (canal.FonteTrigger)
+                {
+                    double Vpp = Comunicação.GetTensãoDePicoMedida(canal.Fonte);
+                    Comunicação.AjustarEscalaVertical(canal.Fonte, 2, 20, true);
+                    Comunicação.SetOffsetVertical(canal.Fonte, -Vpp);
+                    Comunicação.AjustarEscalaVertical(canal.Fonte, 2, 20, false);
+                }
+            }
+
+            Thread.Sleep(500);
+            Comunicação.SetEscalaDeTempo(400E-6, 0.2); 
         }
 
 
@@ -588,7 +609,8 @@ namespace Biblioteca
         }
         public static void SetAtenuação(CanalFonte canal, Atenuação atenuação)
         {
-            ConexãoOsciloscópio?.FormattedIO.WriteLine($"PROBe{(int)canal}:SETup:ATTenuation:MANual {(int)atenuação}");
+            string mensagem = $"PROBe{(int)canal}:SETup:ATTenuation:MANual {(int)atenuação}";
+            ConexãoOsciloscópio?.FormattedIO.WriteLine(mensagem);
         }
 
 
@@ -638,6 +660,32 @@ namespace Biblioteca
                 {
                     AlternarCanal(canal, false);
                 }
+            }
+        }
+        /// <summary>
+        /// Envia forma de onda para memória volátil
+        /// </summary>
+        /// <param name="pontos"></param>
+        public static void SetFormaDeOndaArbitrária(double[] pontos)
+        {
+            if (ConexãoGeradoFunções != null)
+            {
+                string dados = "DATA VOLATILE";
+                foreach (var ponto in pontos)
+                {
+                    dados += ","+ponto.ToString().Replace(",", ".");
+                }
+                ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
+            }
+        }
+
+        public static void SetFormaDeOndaArbitrária(string pontosFormatados)
+        {
+            if (ConexãoGeradoFunções != null)
+            {
+                string dados = "DATA VOLATILE";
+                dados += "," + pontosFormatados;
+                ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
             }
         }
     }
