@@ -250,20 +250,25 @@ namespace Biblioteca
         public static List<double> GetFrequênciasComErro(List<PontoDeMedição> pontosDeMedição)
         {
             List<double> frequencias = new List<double>();
-
-            foreach (var ponto in pontosDeMedição)
+            if (pontosDeMedição != null)
             {
-                bool erroDeComunicação = ponto.houveErro == 1;
-                bool erroDeMedição = !double.IsFinite(ponto.EscalaVerticalTensao);
-                bool admitanciaNegativa = ponto.Admitancia < 0;
-
-                if (erroDeComunicação || erroDeMedição || admitanciaNegativa)
+                foreach (var ponto in pontosDeMedição)
                 {
-                    frequencias.Add(ponto.Frequencia);
-                }
-            }
+                    bool erroDeComunicação = ponto.houveErro == 1;
+                    bool erroDeMedição = !double.IsFinite(ponto.EscalaVerticalTensao);
+                    bool admitanciaNegativa = ponto.Admitancia < 0;
 
-            return frequencias;
+                    if (erroDeComunicação || erroDeMedição || admitanciaNegativa)
+                    {
+                        frequencias.Add(ponto.Frequencia);
+                    }
+                }
+                return frequencias;
+            }
+            else
+            {
+                return new List<double>();
+            }
         }
 
 

@@ -183,7 +183,7 @@ namespace Biblioteca
 
             for (int i = 0; i < numeroIterações; i++)
             {
-                Debug.WriteLine("ITERACAO 1," + canal.ToString());
+                Debug.WriteLine($"ITERACAO {i}," + canal.ToString());
                 #region TENSAO OK
                 double escalaVertical = GetEscalaVertical(canal);
                 double tensaoDePico = GetTensãoDePicoMedida(canal);
@@ -223,17 +223,6 @@ namespace Biblioteca
                         Thread.Sleep(delayEntreAjustes);
                         numTentativas++;
                     }
-
-                    /*
-                    if(!OndaForaDaTela(canal,out double valorDePicoAtual))
-                    {
-                        Debug.WriteLine($"tentativas terminadas");
-                        // depois que a onda já está na tela, ajusta para metade da escala desejada (assim para evitar erros de imprecisão), 
-                        // para que depois possa ser reajustado para o valor certo
-                        SetEscalaVertical(canal, 2 * valorDePicoAtual, numeroDeQuadrados);
-                        Debug.WriteLine($"valor de pico: {valorDePicoAtual} V/V");
-                    }
-                    */
                 }
                 #endregion
 
@@ -408,18 +397,6 @@ namespace Biblioteca
         public static void AlterarSinalDoGerador(Função função, ParametrosTesteImpulsivo  parametros)
         {
             string onda = TiposDeOnda.TipoParaString(função);
-
-            /*
-            if (ConexãoGeradoFunções == null)
-            {
-                ConectarGerador();
-            }
-            if (ConexãoGeradoFunções == null)
-            {
-                throw new Exception();
-            }
-            */
-
             if (ConexãoGeradoFunções != null)
             {
                 string query = parametros.Frequencia.ToString("G").Replace(',', '.') + "," + parametros.Amplitude.ToString("G").Replace(',', '.') + " " + parametros.TensãoTipo.ToString().ToUpper() + "," + parametros.Offset.ToString("G").Replace(',', '.');
@@ -562,7 +539,6 @@ namespace Biblioteca
                 {
                     throw new ErroDeTransferência();
                 }
-                
             }
             catch (Ivi.Visa.IOTimeoutException)
             {
@@ -687,6 +663,7 @@ namespace Biblioteca
                 dados += "," + pontosFormatados;
                 ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
             }
+
         }
     }
 }

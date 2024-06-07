@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,5 +15,23 @@ namespace Biblioteca
 
         public double FrequenciaErro {  get; set; }
 
+    }
+    public class NãoConectado : Exception
+    {
+        public NãoConectado()
+        {
+        }
+
+        public NãoConectado(string? message) : base(message)
+        {
+        }
+
+        public NãoConectado(string? message, Exception? innerException) : base(message, innerException)
+        {
+        }
+
+        protected NãoConectado(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
     }
 }

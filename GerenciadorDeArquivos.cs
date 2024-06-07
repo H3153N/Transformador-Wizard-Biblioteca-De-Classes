@@ -69,23 +69,31 @@ namespace Biblioteca
         {
             List<int> indices = new List<int>();
 
-            for (int i = 0; i < pontosOriginais.Count; i++)
+            if (pontosOriginais != null && pontosAlterados != null)
             {
-                for (int j = 0; j < pontosAlterados.Count; j++)
+                for (int i = 0; i < pontosOriginais.Count; i++)
                 {
-                    if (pontosOriginais[i].Frequencia == pontosAlterados[j].Frequencia)
+                    for (int j = 0; j < pontosAlterados.Count; j++)
                     {
-                        indices.Add(i);
+                        if (pontosOriginais[i].Frequencia == pontosAlterados[j].Frequencia)
+                        {
+                            indices.Add(i);
+                        }
                     }
                 }
-            }
 
-            for (int i = 0; i < pontosAlterados.Count; i++)
+                for (int i = 0; i < pontosAlterados.Count; i++)
+                {
+                    pontosOriginais[indices[i]] = pontosAlterados[i];
+                }
+
+                return pontosOriginais;
+            }
+            else
             {
-                pontosOriginais[indices[i]] = pontosAlterados[i];
+                return new List<PontoDeMedição> { };
             }
-
-            return pontosOriginais;
+            
         }
         public static void SalvarDispositivo(Dispositivo dispositivo)
         {
@@ -152,6 +160,8 @@ namespace Biblioteca
             string caminho = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), ArquivoConexões);
             if (!File.Exists(caminho))
             {
+                string pasta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), PastaConfigurações);
+                Directory.CreateDirectory(pasta);
                 File.Create(caminho).Close();
             }
             try
