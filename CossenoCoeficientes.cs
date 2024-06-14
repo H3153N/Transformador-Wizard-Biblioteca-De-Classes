@@ -18,5 +18,9 @@ namespace Biblioteca
             Amplitude = amplitude;
             Fase = fase;
         }
+        public CossenoCoeficientes()
+        {
+
+        }
     }
 }

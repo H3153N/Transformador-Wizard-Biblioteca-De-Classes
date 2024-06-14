@@ -20,17 +20,17 @@ namespace Biblioteca
         //TITULO;1;1;1;10X;100X;1-2-3-4-5-6
         public string Path { get;  set; } = "";
         public ModuloFase ModuloFase { get;  set; } = new ModuloFase();
-
         public List<PontoDeMedição> medições { get; set; }
+        public int NúmeroDeMédias { get; set; }
         public DateTime Criação { get;  set; }      
         public string Comentário { get; set; }
         public string Random { get;  set; }
-        public string NomeArquivo { get; set; } = string.Empty;
+        public string NomeArquivo { get; set; }
 
         private static Random random = new();
 
-        public double ResistenciaShunt { get;  set; } = -1;
-        public bool TesteShunt { get;  set; } = false;
+        public double ResistenciaShunt { get;  set; }
+        public bool TesteShunt { get;  set; }
 
         #region canais
 

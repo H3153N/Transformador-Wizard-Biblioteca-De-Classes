@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Biblioteca
 {
-    public class ParametrosDaMedição(CanalFonte canalFonte1, CanalFonte canalFonte2, Atenuação atenuaçãoCanalFonte1, Atenuação atenuaçãoCanalFonte2, double tensãoNoGerador, double offsetNoGerador, string formaDeOnda, int singleCount, int pontosDeAquisição, int numeroDeMédias, List<int> pontosPorDecada, MediçãoTipo tipo)
+    public class ParametrosDaMedição(CanalFonte canalFonte1, CanalFonte canalFonte2, Atenuação atenuaçãoCanalFonte1, Atenuação atenuaçãoCanalFonte2, double tensãoNoGerador, double offsetNoGerador, string formaDeOnda, int singleCount, int pontosDeAquisição, int numeroDeMédias, List<int> pontosPorDecada, MediçãoTipo tipo, bool usaShunt, double Rshunt)
     {
         public MediçãoTipo MediçãoTipo { get; private set; } = tipo;
         public CanalFonte CanalFonte1 { get; private set; } = canalFonte1;
@@ -24,8 +24,8 @@ namespace Biblioteca
         public int PontosDeAquisição { get; private set; } = pontosDeAquisição;
         public int NumeroDeMédias { get; private set; } = numeroDeMédias;
 
-        public bool UsaShunt { get; set; }
-        public double ResistenciaShunt { get; set; }
+        public bool UsaShunt { get; set; } = usaShunt;
+        public double ResistenciaShunt { get; set; } = Rshunt;
 
         public List<int> PontosPorDecada { get; private set; } = pontosPorDecada;
     }

@@ -1,6 +1,7 @@
 ﻿using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,11 +23,12 @@ namespace Biblioteca
 
                 double fase = Math.Atan2(-parametros[1], parametros[2]) * 180 / Math.PI;
 
+                Debug.WriteLine($"Regressao linear: {Vmax}V,  {fase} graus");
                 return new CossenoCoeficientes(termoIndependente, Vmax, fase);
             }
             catch (ArgumentException ae)
             {
-
+                Debug.WriteLine(ae.Message);
                 throw;
             }
             

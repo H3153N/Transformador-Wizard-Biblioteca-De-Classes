@@ -22,6 +22,8 @@ namespace Biblioteca
         public static Version? visaNetSharedComponentsVersão { get; private set; } = typeof(GlobalResourceManager).Assembly.GetName().Version;
         public static int IniciarConexãoTimeout { get; private set; } = 2000;
 
+        public static bool debug = true;
+
 
         public static void ConfigurarConexões(string osciloscopioString, string geradorString, int timeout)
         {
@@ -42,13 +44,10 @@ namespace Biblioteca
         {
 
             //REMOVER, USAR CATCH PARA PEGAR TIMEOUT E RESOURCE LOCKED
-            if(ConexãoOsciloscópio != null && (ConexãoOsciloscópio.ResourceLockState == ResourceLockState.ExclusiveLock))
-            {
-                return true;
-            }
+            
             try
             {
-                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.None, IniciarConexãoTimeout);
+                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.LoadConfig, IniciarConexãoTimeout);
                 if (sessãoVisaOsciloscópio is IMessageBasedSession connOsciloscópio)
                 {
                     ConexãoOsciloscópio = connOsciloscópio;
@@ -499,6 +498,9 @@ namespace Biblioteca
         {
             if (ConexãoOsciloscópio != null)
             {
+                DateTime dateTime = DateTime.Now;
+                Debug.WriteIf(debug, $"Download onda canal {(int)canal}");
+
                 string header;
                 string dados;
                 //Debug.WriteLine("GET FORMA DE ONDA");
@@ -508,6 +510,13 @@ namespace Biblioteca
                 // Debug.WriteLine("DATA?");
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA?");
                 dados = ConexãoOsciloscópio.FormattedIO.ReadLine();
+
+                if (debug)
+                {
+                    DateTime dateTime1 = DateTime.Now;
+                    TimeSpan dateTime2 = dateTime1 - dateTime;
+                    Debug.WriteLine($" - {dateTime2.TotalMilliseconds} ms\n");
+                }
 
                 return new FormaDeOnda(header, dados, frequencia);
             }
@@ -521,6 +530,9 @@ namespace Biblioteca
         {
             try
             {
+                DateTime dateTime = DateTime.Now;
+                Debug.WriteIf(debug, $"Download onda canal {(int)canal}");
+                
                 if (ConexãoOsciloscópio != null)
                 {
                     string header;
@@ -533,7 +545,16 @@ namespace Biblioteca
                     ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:DATA?");
                     dados = ConexãoOsciloscópio.FormattedIO.ReadLine();
 
+                    if (debug)
+                    {
+                        DateTime dateTime1 = DateTime.Now;
+                        TimeSpan dateTime2 = dateTime1 - dateTime;
+                        Debug.WriteLine($"Download canal {(int)canal}: {dateTime2.TotalMilliseconds} ms");
+                    }
+
                     return new FormaDeOnda(header, dados);
+
+
                 }
                 else
                 {
@@ -581,7 +602,18 @@ namespace Biblioteca
         }
         public static void AutoSet() 
         {
+            DateTime dateTime = DateTime.Now;
+            Debug.WriteIf(debug, "Autoset");
+
             ConexãoOsciloscópio?.FormattedIO.WriteLine("AUToscale");
+
+            
+            if (debug)
+            {
+                DateTime dateTime1 = DateTime.Now;
+                TimeSpan dateTime2 = dateTime1 - dateTime;
+                Debug.WriteLine($"Autoset: {dateTime2.TotalMilliseconds} ms");
+            }            
         }
         public static void SetAtenuação(CanalFonte canal, Atenuação atenuação)
         {

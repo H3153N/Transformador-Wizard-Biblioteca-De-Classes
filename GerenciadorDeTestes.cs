@@ -58,8 +58,8 @@ namespace Biblioteca
         {
             tempo = DateTime.Now;
             double frequencia = Comunicação.GetFrequenciaNoGerador();
-            Debug.WriteIf(debug,"inicio frequencia " + frequencia.ToString() + "Hz");
-            Debug.WriteIf(debug, "Run");
+            Debug.WriteIf(debug,"inicio frequencia " + frequencia.ToString() + "Hz" + "\n");
+            Debug.WriteIf(debug, "Run" + "\n");
             
             Comunicação.RunStop(true);
             Thread.Sleep(20);
@@ -67,27 +67,27 @@ namespace Biblioteca
             if (testeCauteloso)
             {
                 Comunicação.AutoSet();
-                Debug.WriteIf(debug, "AutoSet");
+                Debug.WriteIf(debug, "AutoSet" + "\n");
                 Thread.Sleep(2000);
             }
 
             Debug.WriteIf(debug, "AutoSet fim\nInicio SetEscalaDeTempo");
             Comunicação.SetEscalaDeTempo();
-            Debug.WriteIf(debug, "SetEscalaDeTempo Fim");
+            Debug.WriteIf(debug, "SetEscalaDeTempo Fim" + "\n");
 
-            Debug.WriteIf(debug, "Offset");
+            Debug.WriteIf(debug, "Offset" + "\n");
 
             Comunicação.SetOffsetVertical(canalTensão, 0);            
             Comunicação.SetOffsetVertical(canalCorrente, 0);
 
             Thread.Sleep(50);
 
-            Debug.WriteIf(debug, "SetEscalaDeVertical 1");
+            Debug.WriteIf(debug, "SetEscalaDeVertical 1" + "\n");
 
             int delay = 25; if (testeCauteloso)  delay = 50; 
 
             Comunicação.AjustarEscalaVertical( canalTensão, 2, delay, true);
-            Debug.WriteIf(debug, "SetEscalaDeVertical 2 ");
+            Debug.WriteIf(debug, "SetEscalaDeVertical 2 " + "\n");
             Comunicação.AjustarEscalaVertical( canalCorrente, 2, delay, true);
 
             Thread.Sleep(50);
@@ -103,23 +103,28 @@ namespace Biblioteca
             Comunicação.RunSingle();
             Thread.Sleep(10);
 
+            Debug.Write("Inicio médias" + "\n");
+            DateTime inicioMédias = DateTime.Now;
             bool runSingleRodando = true;
             while (runSingleRodando)
             {
+
                 string resposta = Comunicação.InquerirOsciloscópio("ACQuire:AVERage:COMPlete?", true);
                 if (resposta == "0\n")
                 {
                     Thread.Sleep(delayMillis);
-                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString());
+                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString() + "\n");
                 }
                 else if (resposta == "1\n") 
                 {
                     runSingleRodando = false;
                 }
             }
-
+            Debug.Write($"Fim médias: {(DateTime.Now - inicioMédias).TotalMilliseconds} ms" + "\n");
 
             //900ms funciona pra 95% dos casos
+
+            /*
             if (testeCauteloso)
             {
                 Thread.Sleep(1200);
@@ -128,18 +133,62 @@ namespace Biblioteca
             {
                 Thread.Sleep(700);
             }
+            */
+
+            Thread.Sleep(100);
             
             if (tipo == MediçãoTipo.Admitancia)
             {
-                Debug.WriteIf(debug, "forma de onda 1" );
+                Debug.WriteIf(debug, "forma de onda 1" + "\n");
 
-                CossenoCoeficientes formaDeOnda1;
-                CossenoCoeficientes formaDeOnda2;
+                CossenoCoeficientes formaDeOnda1 = new CossenoCoeficientes();
+                CossenoCoeficientes formaDeOnda2 = new CossenoCoeficientes();
+
+                int tentativa = 0;
+                bool sucesso = false;
                 try
                 {
-                    formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalTensão, frequencia));
-                    Thread.Sleep(5);
-                    formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalCorrente, frequencia));
+                    //formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalTensão, frequencia));
+                    while (tentativa < 3 && !sucesso)
+                    {
+                        try
+                        {
+                            formaDeOnda1 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalTensão, frequencia));
+                            sucesso = true;
+
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.WriteLine(e);
+                            tentativa++;
+                            Thread.Sleep(100);
+                        }
+                    }
+
+
+                    //Thread.Sleep(100);
+                    //formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalCorrente, frequencia));
+
+                    tentativa = 0;
+                    sucesso = false;
+
+                    
+                    while (tentativa < 3 && !sucesso)
+                    {
+                        try
+                        {
+                            formaDeOnda2 = ProcessamentoDeDados.RegressãoLinearCosseno(Comunicação.GetFormaDeOnda(canalCorrente, frequencia));
+                            sucesso = true;
+                            
+                        }
+                        catch (Exception)
+                        {
+
+                            tentativa++;
+                            Thread.Sleep(100);
+                        }
+                    }
+                    
 
                     Debug.WriteIf(debug, "forma de onda 2\n\n");
 
@@ -217,7 +266,7 @@ namespace Biblioteca
         /// <param name="offset"></param>
         /// <param name="frequencias"></param>
         /// <returns></returns>
-        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia)
+        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias)
         {
             pontosDeMedição.Clear();
             
@@ -227,13 +276,13 @@ namespace Biblioteca
                 try
                 {
                     // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
-                    Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
+                    Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, numMédias, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
                     pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia));
                 }
                 catch(IOTimeoutException timeout)
                 {
-                    Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}");
+                    Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}" + "\n");
                 }
             }
             Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);
@@ -315,7 +364,7 @@ namespace Biblioteca
                 if (resposta == "0\n")
                 {
                     Thread.Sleep(delayMillis);
-                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString());
+                    Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString() + "\n");
                 }
                 else if (resposta == "1\n")
                 {
@@ -368,7 +417,7 @@ namespace Biblioteca
         public static ParametrosDaMedição GetParametrosDeMedição(RespostaEmFrequência teste)
         {
             return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2, teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,
-                                           10, 0, "SIN", 10, 10000, 16, teste.PontosPorDecada, MediçãoTipo.Admitancia);
+                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt);
         }
 
 

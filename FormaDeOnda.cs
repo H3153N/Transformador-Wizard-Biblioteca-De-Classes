@@ -1,6 +1,7 @@
 ﻿using OxyPlot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -56,7 +57,7 @@ namespace Biblioteca
                 }
                 catch (Exception e)
                 {
-
+                    Debug.WriteLine(e.Message);
                     throw new ErroDeTransferência { FrequenciaErro = frequencia };
                 }
             }
@@ -95,7 +96,7 @@ namespace Biblioteca
                 }
                 catch (Exception e)
                 {
-
+                    Debug.WriteLine(e.Message);
                     throw new ErroDeTransferência {  };
                 }
             }
