@@ -15,5 +15,6 @@ namespace Biblioteca
 
         public double EscalaVerticalTensao { get; private set; } = escalaTensao;
         public double EscalaVerticalCorrente { get; private set; } = escalaCorrente;
+        public DetalhesMedição DetalhesMedição { get; set; }
     }
 }

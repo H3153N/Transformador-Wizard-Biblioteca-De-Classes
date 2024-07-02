@@ -12,8 +12,8 @@ namespace Biblioteca
 {
     public class Comunicação
     {
-        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.109::INSTR";
-        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.118::INSTR";
+        public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.100::INSTR";
+        public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.101::INSTR";
 
         public static IMessageBasedSession? ConexãoGeradoFunções { get; private set; }
         public static IMessageBasedSession? ConexãoOsciloscópio { get; private set; }
@@ -47,7 +47,7 @@ namespace Biblioteca
             
             try
             {
-                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.LoadConfig, IniciarConexãoTimeout);
+                sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, IniciarConexãoTimeout);
                 if (sessãoVisaOsciloscópio is IMessageBasedSession connOsciloscópio)
                 {
                     ConexãoOsciloscópio = connOsciloscópio;
@@ -167,8 +167,11 @@ namespace Biblioteca
         /// <exception cref="Exception">especificar</exception>
         public static void AjustarEscalaVertical(CanalFonte canal, int numeroIterações, int delayEntreAjustes, bool ajustarOffset)
         {
-            int numeroDeQuadrados = 4;
+            DateTime dateTime = DateTime.Now;
+            double numeroDeQuadradosParaAjustar = 3.5;
             int numTentativasReiterativas = 5;
+
+            Thread.Sleep(1 * delayEntreAjustes);
 
             //delay = 25ms
             if (ajustarOffset)
@@ -176,74 +179,65 @@ namespace Biblioteca
                 SetOffsetVertical(canal, 0);
             }
             
-            Debug.WriteLine("Set offset");
+            double tensão = GetTensãoDePicoMedida(canal);
+            double escala = GetEscalaVertical(canal);
+            double quadrados = tensão / escala;
 
-            Thread.Sleep(delayEntreAjustes);
+            bool ajusteAceitável = quadrados >= 2 && quadrados <= 4.5;
+
+            
 
             for (int i = 0; i < numeroIterações; i++)
             {
-                Debug.WriteLine($"ITERACAO {i}," + canal.ToString());
-                #region TENSAO OK
-                double escalaVertical = GetEscalaVertical(canal);
-                double tensaoDePico = GetTensãoDePicoMedida(canal);
-                double numQuadrados = tensaoDePico / escalaVertical;
-
-                bool valorOK = numQuadrados < 4.5 && numQuadrados > 1;
-                bool aprovado = numQuadrados < 4.5 && numQuadrados > 2;
-
-                if (valorOK)
+                if (ajusteAceitável)
                 {
-                    Debug.WriteLine("VALOR OK");
-                    SetEscalaVertical(canal, GetTensãoDePicoMedida(canal), numeroDeQuadrados);
-                }
-                if (aprovado)
-                {
-                    Debug.WriteLine("APROVADO");
                     break;
                 }
-                #endregion
 
-                #region SE TENSAO MUITO GRANDE
-                if (!valorOK && OndaForaDaTela(canal, out _))
+                bool fora = OndaForaDaTela(canal, out double real_valor);
+                                    
+                tensão = real_valor;
+                escala = GetEscalaVertical(canal);
+                if (fora)
                 {
-                    Debug.WriteLine("Onda Fora da Tela");
+                    escala = 3 * GetEscalaVertical(canal);
+                    SetEscalaVertical(canal, escala);
+                }              
 
-                    int numTentativas = 0;
+                quadrados = tensão / escala;
+                ajusteAceitável = quadrados >= 2 && quadrados <= 4.5;
+                    
 
-                    if (escalaVertical < 0.05)
+                if (ajusteAceitável)
+                {
+                    break;
+                }       
+                
+                if (quadrados < 1)
+                {
+                    int count = 0;
+                    while (quadrados < 1 && count < numTentativasReiterativas)
                     {
-                        SetEscalaVertical(canal, 2);
+                        escala = (1/3f) * GetEscalaVertical(canal);
+                        SetEscalaVertical(canal, escala);
+                        tensão = GetTensãoDePicoMedida(canal);
+
+                        quadrados = tensão / escala;
+                        ajusteAceitável = quadrados >= 2 && quadrados <= 4.5;
+                        count++;
                     }
-                    //diminui a escala até que o sinal se encontre dentro da tela novamente
-                    while (OndaForaDaTela(canal, out double pico) && numTentativas < numTentativasReiterativas)
+
+                    if (ajusteAceitável)
                     {
-                        Debug.WriteLine($"tentativa: {numTentativas}, valor de pico: {pico} V/V");
-                        SetEscalaVertical(canal, (4f/3f)*GetEscalaVertical(canal));                        
-                        Thread.Sleep(delayEntreAjustes);
-                        numTentativas++;
+                        break;
                     }
                 }
-                #endregion
 
-                #region SE TENSAO MUITO PEQUENA
-                if (!valorOK && GetTensãoDePicoMedida(canal) <= 1.5 || escalaVertical > 25)
-                {
-                    Debug.WriteLine($"Tensao muito pequena");
-                    int numTentativas = 0;
-                    //diminui a escala até que o sinal ocupe 2 quadrados
-                    if (escalaVertical > 40)
-                    {
-                        SetEscalaVertical(canal, 4);
-                    }
-                    while (GetRazãoPicoEscala(canal)<1 && numTentativas < numTentativasReiterativas)
-                    {
-                        Debug.WriteLine($"tentativa: {numTentativas}");
-                        SetEscalaVertical(canal, (1f/2f)* GetEscalaVertical(canal));
-                        Thread.Sleep(delayEntreAjustes);
-                    }
-                }
-                #endregion
+                SetEscalaVertical(canal, tensão, numeroDeQuadradosParaAjustar);
+                break;
             }
+
+            Debug.WriteLine($"Ajuste canal {canal}, {(DateTime.Now - dateTime).TotalMilliseconds}ms");
         }
 
         public static void AjustarEscalaParaImpulso(List<Canal> canaisAtivos)
@@ -256,7 +250,7 @@ namespace Biblioteca
             //escala de tempo
             //offset de tempo
             Comunicação.AutoSet();
-            Thread.Sleep(2000);
+            //Thread.Sleep(2000);
 
             foreach (var canal in canaisAtivos)
             {
@@ -288,7 +282,7 @@ namespace Biblioteca
             if (ConexãoOsciloscópio != null)
             {
                 ConexãoOsciloscópio.FormattedIO.WriteLine("FORMat:DATA ASCii, 0");
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {pontosAdquiridos}");
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {10000}");
 
                 if (modo == AquisiçãoModo.AltaResolução)
                 {
@@ -305,11 +299,11 @@ namespace Biblioteca
             }
         }
 
-        public static void SetEscalaVertical(CanalFonte canal, double tensãoDePico, int numeroDeQuadrados)
+        public static void SetEscalaVertical(CanalFonte canal, double tensãoDePico, double numeroDeQuadrados)
         {
             if (ConexãoOsciloscópio != null)
             {
-                string EscalaString = (tensãoDePico / numeroDeQuadrados).ToString("G").Replace(',', '.');
+                string EscalaString = (tensãoDePico / (double)numeroDeQuadrados).ToString("G").Replace(',', '.');
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:SCALe {EscalaString}");
             }
         }
@@ -326,8 +320,10 @@ namespace Biblioteca
         {
             if (ConexãoOsciloscópio != null)
             {
+                DateTime dateTime = DateTime.Now;
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:SCALe?");
                 double escala = double.Parse(ConexãoOsciloscópio.FormattedIO.ReadLine(), CultureInfo.InvariantCulture);
+                //Debug.WriteLine($"Get escala vertical: {(DateTime.Now - dateTime).TotalMilliseconds}ms");
                 return escala;
             }
             else
@@ -356,8 +352,13 @@ namespace Biblioteca
                 throw new Exception();
             }
         }
-        
-        
+
+        public static bool OndaForaDaTela(double valorDePico)
+        {
+            return valorDePico > 9E+10;            
+        }
+
+
         /// <summary>
         /// 
         /// </summary>
@@ -421,8 +422,6 @@ namespace Biblioteca
                     ConexãoGeradoFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:DCYCle {parametros.CicloDeTrabalho.ToString("G").Replace(',', '.')}");
                     ConexãoGeradoFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:TRANsition {parametros.TempoDeQuina.ToString("G").Replace(',', '.')}");
                 }
-
-                
             }
         }
         public static void SetEscalaDeTempo()
@@ -441,7 +440,6 @@ namespace Biblioteca
                 double offset = janelaDeMedição / 2 - escalaDeTempo * QuadradosOffset;
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"TIMebase:POSition {offset.ToString("G").Replace(',', '.')}");
             }
-            
         }
 
         double GetEscalaDeTempo()
@@ -460,9 +458,12 @@ namespace Biblioteca
         {
             if (ConexãoOsciloscópio != null)
             {
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"MEASurement2:SOURce {fonteDoSinal.ToString()}");
-                ConexãoOsciloscópio.FormattedIO.WriteLine("MEASurement2:MAIN UPE");
-                ConexãoOsciloscópio.FormattedIO.WriteLine("MEASurement2:RESult:ACTual? UPE");
+                DateTime dateTime = DateTime.Now;
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"MEASurement{(int)fonteDoSinal}:SOURce {fonteDoSinal.ToString()}");
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"MEASurement{(int)fonteDoSinal}:MAIN UPE");
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"MEASurement{(int)fonteDoSinal}:RESult:ACTual? UPE");
+
+                Debug.WriteLine($"Get tensao de pico: {(DateTime.Now - dateTime).TotalMilliseconds}ms");
 
                 return double.Parse(ConexãoOsciloscópio.FormattedIO.ReadLine(), CultureInfo.InvariantCulture);
             }
@@ -525,6 +526,27 @@ namespace Biblioteca
                 throw new ErroDeTransferência();
             }
         }
+
+        public static List<FormaDeOnda> GetFormasDeOnda(List<CanalFonte> canais, double frequencia,out TimeSpan[] tempos)
+        {
+            List<FormaDeOnda> formasDeOnda = new List<FormaDeOnda>();
+            tempos = new TimeSpan[canais.Count];
+
+            int i = 0;
+            foreach (var canal in canais)
+            {
+                DateTime dateTime = DateTime.Now;
+                string header = InquerirOsciloscópio($"CHAN{(int)canal}:DATA:HEAD?", true);
+                string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
+                tempos[i] = (DateTime.Now - dateTime);
+                formasDeOnda.Add(new FormaDeOnda(header , dados, frequencia));
+                Thread.Sleep(100);
+            }
+
+            return formasDeOnda;
+        }
+
+        
 
         public static FormaDeOnda GetFormaDeOnda(CanalFonte canal)
         {
@@ -591,6 +613,18 @@ namespace Biblioteca
                 return e.Message;   
             }
         }
+
+        public static string InquerirOsciloscópio(List<string> perguntas, bool EsperarResposta)
+        {
+            
+            foreach (var item in perguntas)
+            {
+
+            }
+
+            return "";
+        }
+
         public static void RunSingle()
         {
             ConexãoOsciloscópio?.FormattedIO.WriteLine($"RUNSingle");
@@ -602,28 +636,38 @@ namespace Biblioteca
         }
         public static void AutoSet() 
         {
-            DateTime dateTime = DateTime.Now;
-            Debug.WriteIf(debug, "Autoset");
-
-            ConexãoOsciloscópio?.FormattedIO.WriteLine("AUToscale");
-
+            // Initial polling loop to demonstrate status before Autoset
             
-            if (debug)
+
+            Debug.WriteIf(debug, "Autoset\n");            
+            DateTime t1 = DateTime.Now;
+            ConexãoOsciloscópio?.FormattedIO.WriteLine("*CLS");
+            ConexãoOsciloscópio?.FormattedIO.WriteLine("AUToscale");
+            ConexãoOsciloscópio?.FormattedIO.WriteLine("*OPC");
+
+            Thread.Sleep(800);
+
+            try
             {
-                DateTime dateTime1 = DateTime.Now;
-                TimeSpan dateTime2 = dateTime1 - dateTime;
-                Debug.WriteLine($"Autoset: {dateTime2.TotalMilliseconds} ms");
-            }            
+                string registroDeEstado = GetESR();
+                int esrValor = Convert.ToInt32(registroDeEstado, 2);
+
+                if ((esrValor & 1) == 1)
+                {
+                    Debug.WriteLine($"AutoSet Completo: {(DateTime.Now - t1).TotalMilliseconds}ms");
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                
+            }
         }
         public static void SetAtenuação(CanalFonte canal, Atenuação atenuação)
         {
             string mensagem = $"PROBe{(int)canal}:SETup:ATTenuation:MANual {(int)atenuação}";
             ConexãoOsciloscópio?.FormattedIO.WriteLine(mensagem);
         }
-
-
-
-
         public static void AlternarCanal(CanalFonte canal, bool ligadoDesligado)
         {
             if (ConexãoOsciloscópio != null)
@@ -685,6 +729,57 @@ namespace Biblioteca
                 }
                 ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
             }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static string OPC()
+        {
+            if (ConexãoOsciloscópio != null)
+            {
+                ConexãoOsciloscópio.FormattedIO.WriteLine("STATus:OPERation:CONDition?");
+                try
+                {
+                    byte[] dados = ConexãoOsciloscópio.RawIO.Read();
+
+                    string resposta = "";
+                    foreach (var ponto in dados)
+                    {
+                        resposta += ponto.ToString();
+                    }
+                    return resposta;
+                }
+                catch (Exception e )
+                {
+
+                    Debug.WriteLine(e.Message);
+                }
+            }
+
+            return "-1";
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static string GetESR()
+        {
+            if (ConexãoOsciloscópio != null)
+            {
+                ConexãoOsciloscópio.FormattedIO.WriteLine("*ESR?");
+                string statusByte = ConexãoOsciloscópio.FormattedIO.ReadLine();
+                int numero = int.Parse(statusByte);
+                statusByte = Convert.ToString(numero, 2).PadLeft(8, '0');
+
+                return statusByte;
+            }
+
+            return "-1";
         }
 
         public static void SetFormaDeOndaArbitrária(string pontosFormatados)

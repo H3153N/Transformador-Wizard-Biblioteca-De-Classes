@@ -36,6 +36,7 @@ namespace Biblioteca
     {
         Modulo = 0,
         Fase = 1,
+        Detalhes = 2
     }
 
     public enum AquisiçãoModo 
