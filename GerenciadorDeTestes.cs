@@ -158,7 +158,7 @@ namespace Biblioteca
                         {
                                             
 
-                            List<FormaDeOnda> ondas = Comunicação.GetFormasDeOnda(new List<CanalFonte> { CanalFonte.CH1, CanalFonte.CH2 }, frequencia, out TimeSpan[] t);
+                            List<FormaDeOnda> ondas = Comunicação.GetFormasDeOnda(new List<CanalFonte> { CanalFonte.CH1, CanalFonte.CH2 }, frequencia, out TimeSpan[] t, false);
                             tempoDownloadCanalA = t[0];
                             tempoDownloadCanalB = t[1];
 

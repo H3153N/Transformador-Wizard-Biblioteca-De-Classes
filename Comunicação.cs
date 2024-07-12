@@ -44,7 +44,7 @@ namespace Biblioteca
         {
 
             //REMOVER, USAR CATCH PARA PEGAR TIMEOUT E RESOURCE LOCKED
-            
+
             try
             {
                 sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, IniciarConexãoTimeout);
@@ -59,7 +59,7 @@ namespace Biblioteca
                     return false;
                 }
             }
-            catch(VisaException e)
+            catch (VisaException e)
             {
                 Debug.WriteLine(e.Message);
                 return false;
@@ -121,7 +121,7 @@ namespace Biblioteca
                     return "Gerador: Not a message based session";
                 }
                 sessãoVisaOsciloscópio = GlobalResourceManager.Open(EndereçoOsciloscopioLAN, AccessModes.ExclusiveLock, 10000);
-                
+
                 if (sessãoVisaOsciloscópio is IMessageBasedSession connOsciloscópio)
                 {
                     ConexãoOsciloscópio = connOsciloscópio;
@@ -178,14 +178,14 @@ namespace Biblioteca
             {
                 SetOffsetVertical(canal, 0);
             }
-            
+
             double tensão = GetTensãoDePicoMedida(canal);
             double escala = GetEscalaVertical(canal);
             double quadrados = tensão / escala;
 
             bool ajusteAceitável = quadrados >= 2 && quadrados <= 4.5;
 
-            
+
 
             for (int i = 0; i < numeroIterações; i++)
             {
@@ -195,30 +195,35 @@ namespace Biblioteca
                 }
 
                 bool fora = OndaForaDaTela(canal, out double real_valor);
-                                    
+
                 tensão = real_valor;
                 escala = GetEscalaVertical(canal);
                 if (fora)
                 {
                     escala = 3 * GetEscalaVertical(canal);
                     SetEscalaVertical(canal, escala);
-                }              
+                }
 
                 quadrados = tensão / escala;
                 ajusteAceitável = quadrados >= 2 && quadrados <= 4.5;
-                    
+
 
                 if (ajusteAceitável)
                 {
                     break;
-                }       
-                
+                }
+
                 if (quadrados < 1)
                 {
                     int count = 0;
                     while (quadrados < 1 && count < numTentativasReiterativas)
                     {
-                        escala = (1/3f) * GetEscalaVertical(canal);
+                        double multiplicador = (1 / 3f);
+                        if (count > 0)
+                        {
+                            multiplicador = (2 / 3f);
+                        }
+                        escala = multiplicador * GetEscalaVertical(canal);
                         SetEscalaVertical(canal, escala);
                         tensão = GetTensãoDePicoMedida(canal);
 
@@ -233,7 +238,7 @@ namespace Biblioteca
                     }
                 }
 
-                SetEscalaVertical(canal, tensão, numeroDeQuadradosParaAjustar);
+                //SetEscalaVertical(canal, tensão, numeroDeQuadradosParaAjustar);
                 break;
             }
 
@@ -265,7 +270,7 @@ namespace Biblioteca
             }
 
             Thread.Sleep(500);
-            Comunicação.SetEscalaDeTempo(400E-6, 0.2); 
+            Comunicação.SetEscalaDeTempo(400E-6, 0.2);
         }
 
 
@@ -282,7 +287,7 @@ namespace Biblioteca
             if (ConexãoOsciloscópio != null)
             {
                 ConexãoOsciloscópio.FormattedIO.WriteLine("FORMat:DATA ASCii, 0");
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {10000}");
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"ACQuire:POINts:VALue {pontosAdquiridos}");
 
                 if (modo == AquisiçãoModo.AltaResolução)
                 {
@@ -299,14 +304,7 @@ namespace Biblioteca
             }
         }
 
-        public static void SetEscalaVertical(CanalFonte canal, double tensãoDePico, double numeroDeQuadrados)
-        {
-            if (ConexãoOsciloscópio != null)
-            {
-                string EscalaString = (tensãoDePico / (double)numeroDeQuadrados).ToString("G").Replace(',', '.');
-                ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:SCALe {EscalaString}");
-            }
-        }
+        
         public static void SetEscalaVertical(CanalFonte canal, double escala)
         {
             if (ConexãoOsciloscópio != null)
@@ -331,14 +329,6 @@ namespace Biblioteca
                 return double.NaN;
             }
         }
-        public static double GetRazãoPicoEscala(CanalFonte canal)
-        {
-            if (ConexãoOsciloscópio != null)
-            {
-                return GetTensãoDePicoMedida(canal) / GetEscalaVertical(canal);
-            }
-            else { return double.NaN; }
-        }
         public static bool OndaForaDaTela(CanalFonte canal, out double valorDePico)
         {
             if (ConexãoOsciloscópio != null)
@@ -352,13 +342,6 @@ namespace Biblioteca
                 throw new Exception();
             }
         }
-
-        public static bool OndaForaDaTela(double valorDePico)
-        {
-            return valorDePico > 9E+10;            
-        }
-
-
         /// <summary>
         /// 
         /// </summary>
@@ -366,7 +349,7 @@ namespace Biblioteca
         /// <exception cref="Exception"></exception>
         public static void AlterarFrequenciaDoGerador(double frequencia)
         {
-                ConexãoGeradoFunções?.FormattedIO.WriteLine($"FREQuency {frequencia.ToString("E1")}");
+            ConexãoGeradoFunções?.FormattedIO.WriteLine($"FREQuency {frequencia.ToString("E1")}");
         }
         public static double GetFrequenciaNoGerador()
         {
@@ -380,6 +363,23 @@ namespace Biblioteca
                 return double.NaN;
             }
         }
+        public static bool SaídaGeradorAtiva()
+        {
+            if (ConexãoGeradoFunções != null)
+            {
+                ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut?");
+                string resposta = ConexãoGeradoFunções.FormattedIO.ReadLine();
+                if (resposta == "0\n")
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         public static void AlterarSinalDoGerador(string formaDeOnda, double frequencia, double amplitude, Tensão tensão, double offset, bool ativarSaida)
         {
 
@@ -391,10 +391,10 @@ namespace Biblioteca
                 {
                     ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
                 }
-            }    
+            }
         }
 
-        public static void AlterarSinalDoGerador(Função função, ParametrosTesteImpulsivo  parametros)
+        public static void AlterarSinalDoGerador(Função função, ParametrosTesteImpulsivo parametros)
         {
             string onda = TiposDeOnda.TipoParaString(função);
             if (ConexãoGeradoFunções != null)
@@ -426,8 +426,8 @@ namespace Biblioteca
         }
         public static void SetEscalaDeTempo()
         {
-                double escalaDeTempo = 4 * (1 / FrequenciaAplicada) / 12;
-                ConexãoOsciloscópio?.FormattedIO.WriteLine($"TIMebase:SCALe {escalaDeTempo.ToString("G").Replace(',','.')}");                
+            double escalaDeTempo = 4 * (1 / FrequenciaAplicada) / 12;
+            ConexãoOsciloscópio?.FormattedIO.WriteLine($"TIMebase:SCALe {escalaDeTempo.ToString("G").Replace(',', '.')}");
         }
 
         public static void SetEscalaDeTempo(double janelaDeMedição, double QuadradosOffset)
@@ -472,10 +472,10 @@ namespace Biblioteca
                 return double.NaN;
             }
         }
-        
+
         public static void SetOffsetVertical(CanalFonte canal, double offset)
         {
-            ConexãoOsciloscópio?.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:OFFSet {offset.ToString("G").Replace(',', '.')}");            
+            ConexãoOsciloscópio?.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:OFFSet {offset.ToString("G").Replace(',', '.')}");
         }
         public static void SetNivelDeTrigger(CanalFonte canalDeTrigger, double nivel)
         {
@@ -527,26 +527,66 @@ namespace Biblioteca
             }
         }
 
-        public static List<FormaDeOnda> GetFormasDeOnda(List<CanalFonte> canais, double frequencia,out TimeSpan[] tempos)
+        public static List<FormaDeOnda> GetFormasDeOnda(List<CanalFonte> canais, double frequencia, out TimeSpan[] tempos, bool maisTempo)
         {
-            List<FormaDeOnda> formasDeOnda = new List<FormaDeOnda>();
-            tempos = new TimeSpan[canais.Count];
-
-            int i = 0;
-            foreach (var canal in canais)
+            try
             {
-                DateTime dateTime = DateTime.Now;
-                string header = InquerirOsciloscópio($"CHAN{(int)canal}:DATA:HEAD?", true);
-                string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
-                tempos[i] = (DateTime.Now - dateTime);
-                formasDeOnda.Add(new FormaDeOnda(header , dados, frequencia));
-                Thread.Sleep(100);
-            }
+                List<FormaDeOnda> formasDeOnda = new List<FormaDeOnda>();
+                tempos = new TimeSpan[canais.Count];
 
-            return formasDeOnda;
+                int i = 0;
+                foreach (var canal in canais)
+                {
+                    DateTime dateTime = DateTime.Now;
+                    string header = InquerirOsciloscópio($"CHAN{(int)canal}:DATA:HEAD?", true);
+                    string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
+                    tempos[i] = (DateTime.Now - dateTime);
+                    formasDeOnda.Add(new FormaDeOnda(header, dados, frequencia));
+
+                    if (maisTempo)
+                    {
+                        Thread.Sleep(400);
+                    }
+                    Thread.Sleep(100);
+                }
+
+                return formasDeOnda;
+            }
+            catch (Ivi.Visa.IOTimeoutException ea)
+            {
+                tempos = new TimeSpan[1];
+                Debug.WriteLine("timeout download onda");
+                return new List<FormaDeOnda>();
+            }
         }
 
-        
+        public static bool TryGetFormasDeOndaLento(List<CanalFonte> canais, out List<FormaDeOnda> formasDeOnda)
+        {
+            try
+            {
+                Thread.Sleep(300);
+                formasDeOnda = new List<FormaDeOnda>();
+
+                foreach (var canal in canais)
+                {
+                    Debug.WriteLine($"CH{(int)canal}");
+                    string header = InquerirOsciloscópio($"CHAN{(int)canal}:DATA:HEAD?", true);
+                    string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
+
+                    formasDeOnda.Add((new FormaDeOnda(header, dados)));
+                    Thread.Sleep(1000);
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                formasDeOnda = new List<FormaDeOnda>();
+                return false;
+            }
+        }
+
+
 
         public static FormaDeOnda GetFormaDeOnda(CanalFonte canal)
         {
@@ -554,7 +594,7 @@ namespace Biblioteca
             {
                 DateTime dateTime = DateTime.Now;
                 Debug.WriteIf(debug, $"Download onda canal {(int)canal}");
-                
+
                 if (ConexãoOsciloscópio != null)
                 {
                     string header;
@@ -583,10 +623,11 @@ namespace Biblioteca
                     throw new ErroDeTransferência();
                 }
             }
-            catch (Ivi.Visa.IOTimeoutException)
+            catch (Ivi.Visa.IOTimeoutException ea)
             {
 
-                throw;
+                Debug.WriteLine("timeout download onda");
+                return new FormaDeOnda();
             }
         }
 
@@ -608,21 +649,10 @@ namespace Biblioteca
                     return "-2";
                 }
             }
-            catch (Exception e )
+            catch (Exception e)
             {
-                return e.Message;   
+                return e.Message;
             }
-        }
-
-        public static string InquerirOsciloscópio(List<string> perguntas, bool EsperarResposta)
-        {
-            
-            foreach (var item in perguntas)
-            {
-
-            }
-
-            return "";
         }
 
         public static void RunSingle()
@@ -631,15 +661,15 @@ namespace Biblioteca
         }
         public static void RunStop(bool run)
         {
-            if (run) { ConexãoOsciloscópio?.FormattedIO.WriteLine("RUN");}
+            if (run) { ConexãoOsciloscópio?.FormattedIO.WriteLine("RUN"); }
             else { ConexãoOsciloscópio?.FormattedIO.WriteLine("STOP"); }
         }
-        public static void AutoSet() 
+        public static void AutoSet()
         {
             // Initial polling loop to demonstrate status before Autoset
-            
 
-            Debug.WriteIf(debug, "Autoset\n");            
+
+            Debug.WriteIf(debug, "Autoset\n");
             DateTime t1 = DateTime.Now;
             ConexãoOsciloscópio?.FormattedIO.WriteLine("*CLS");
             ConexãoOsciloscópio?.FormattedIO.WriteLine("AUToscale");
@@ -656,13 +686,24 @@ namespace Biblioteca
                 {
                     Debug.WriteLine($"AutoSet Completo: {(DateTime.Now - t1).TotalMilliseconds}ms");
                 }
-                
+
             }
             catch (Exception ex)
             {
-                
+
             }
         }
+
+        public static List<CanalFonte> ToCanalFonte(List<Canal> canais)
+        {
+            List<CanalFonte> fontes = new List<CanalFonte>();
+            foreach (var canal in canais)
+            {
+                fontes.Add(canal.Fonte);
+            }
+            return fontes;
+        }
+
         public static void SetAtenuação(CanalFonte canal, Atenuação atenuação)
         {
             string mensagem = $"PROBe{(int)canal}:SETup:ATTenuation:MANual {(int)atenuação}";
@@ -691,29 +732,7 @@ namespace Biblioteca
                 }
             }
         }
-
-
-
-        /// <summary>
-        /// Ativa os canais listados, desativa o restante
-        /// </summary>
-        /// <param name="canaisParaAtivar"></param>
-        public static void AlterarCanal(List<CanalFonte> canaisParaAtivar)
-        {
-            List<CanalFonte> todosOsCanais = new List<CanalFonte>() { CanalFonte.CH1, CanalFonte.CH2, CanalFonte.CH3, CanalFonte.CH4 };
-
-            foreach (var canal in todosOsCanais)
-            {
-                if (canaisParaAtivar.Contains(canal))
-                {
-                    AlternarCanal(canal, true);
-                }
-                else
-                {
-                    AlternarCanal(canal, false);
-                }
-            }
-        }
+        
         /// <summary>
         /// Envia forma de onda para memória volátil
         /// </summary>
@@ -730,38 +749,6 @@ namespace Biblioteca
                 ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
             }
         }
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public static string OPC()
-        {
-            if (ConexãoOsciloscópio != null)
-            {
-                ConexãoOsciloscópio.FormattedIO.WriteLine("STATus:OPERation:CONDition?");
-                try
-                {
-                    byte[] dados = ConexãoOsciloscópio.RawIO.Read();
-
-                    string resposta = "";
-                    foreach (var ponto in dados)
-                    {
-                        resposta += ponto.ToString();
-                    }
-                    return resposta;
-                }
-                catch (Exception e )
-                {
-
-                    Debug.WriteLine(e.Message);
-                }
-            }
-
-            return "-1";
-        }
-
 
         /// <summary>
         /// 

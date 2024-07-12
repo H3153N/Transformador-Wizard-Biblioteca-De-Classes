@@ -204,11 +204,19 @@ namespace Biblioteca
         }
 
         public static string GetStringFormaDeOndaArbitrária(string path)
-        {            
-            string dados = File.ReadAllText(path).Replace(",", ".").Replace("\r\n", ",");
-            // string[] valores = dados.Split("\r\n");
-            
-            return dados.TrimEnd(',');
+        {
+            try
+            {
+                string dados = File.ReadAllText(path).Replace(",", ".").Replace("\r\n", ",");
+                // string[] valores = dados.Split("\r\n");
+
+                return dados.TrimEnd(',');
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
     }
 }

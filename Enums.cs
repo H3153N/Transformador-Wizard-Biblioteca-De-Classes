@@ -53,7 +53,10 @@ namespace Biblioteca
         Pulso       = 3,
         Ruído       = 4,
         DC          = 5,
-        Arbitrária  = 6
+        Arbitrária  = 6,
+        preset1     = 7,
+        preset2     = 8,    
+        preset3     = 9,
     }
     public enum Tensão
     {
