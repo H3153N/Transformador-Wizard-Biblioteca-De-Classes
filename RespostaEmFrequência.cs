@@ -14,10 +14,7 @@ namespace Biblioteca
     {
         
 
-        //comentario;canalTensao;canalCorrente;AtenuacaoTensao;AtenuacaoCorrente;PPD;datetime;random
-        //                                                                X1, X10, X100, X1000
-
-        //TITULO;1;1;1;10X;100X;1-2-3-4-5-6
+        public CanalFonte fonteGatilho { get; set; }
         public string Path { get;  set; } = "";
         public ModuloFase ModuloFase { get;  set; } = new ModuloFase();
         public List<PontoDeMedição> medições { get; set; }

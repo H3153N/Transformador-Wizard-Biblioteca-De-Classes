@@ -15,7 +15,7 @@ namespace Biblioteca
         public static string EndereçoGeradorLAN { get; private set; } = "TCPIP::192.168.0.100::INSTR";
         public static string EndereçoOsciloscopioLAN { get; private set; } = "TCPIP::192.168.0.101::INSTR";
 
-        public static IMessageBasedSession? ConexãoGeradoFunções { get; private set; }
+        public static IMessageBasedSession? ConexãoGeradorFunções { get; private set; }
         public static IMessageBasedSession? ConexãoOsciloscópio { get; private set; }
         public static IVisaSession? sessãoVisaGerador { get; private set; }
         public static IVisaSession? sessãoVisaOsciloscópio { get; private set; }
@@ -67,7 +67,7 @@ namespace Biblioteca
         }
         public static bool ConectarGerador()
         {
-            if (ConexãoGeradoFunções != null && (ConexãoGeradoFunções.ResourceLockState == ResourceLockState.ExclusiveLock))
+            if (ConexãoGeradorFunções != null && (ConexãoGeradorFunções.ResourceLockState == ResourceLockState.ExclusiveLock))
             {
                 return true;
             }
@@ -76,8 +76,8 @@ namespace Biblioteca
                 sessãoVisaGerador = GlobalResourceManager.Open(EndereçoGeradorLAN, AccessModes.None, IniciarConexãoTimeout);
                 if (sessãoVisaGerador is IMessageBasedSession connGerador)
                 {
-                    ConexãoGeradoFunções = connGerador;
-                    ConexãoGeradoFunções.TerminationCharacterEnabled = true;
+                    ConexãoGeradorFunções = connGerador;
+                    ConexãoGeradorFunções.TerminationCharacterEnabled = true;
                     return true;
                 }
                 else
@@ -113,8 +113,8 @@ namespace Biblioteca
                 sessãoVisaGerador = GlobalResourceManager.Open(EndereçoGeradorLAN, AccessModes.ExclusiveLock, 10000);
                 if (sessãoVisaGerador is IMessageBasedSession connGerador)
                 {
-                    ConexãoGeradoFunções = connGerador;
-                    ConexãoGeradoFunções.TerminationCharacterEnabled = true;
+                    ConexãoGeradorFunções = connGerador;
+                    ConexãoGeradorFunções.TerminationCharacterEnabled = true;
                 }
                 else
                 {
@@ -349,14 +349,14 @@ namespace Biblioteca
         /// <exception cref="Exception"></exception>
         public static void AlterarFrequenciaDoGerador(double frequencia)
         {
-            ConexãoGeradoFunções?.FormattedIO.WriteLine($"FREQuency {frequencia.ToString("E1")}");
+            ConexãoGeradorFunções?.FormattedIO.WriteLine($"FREQuency {frequencia.ToString("E1")}");
         }
         public static double GetFrequenciaNoGerador()
         {
-            if (ConexãoGeradoFunções != null)
+            if (ConexãoGeradorFunções != null)
             {
-                ConexãoGeradoFunções.FormattedIO.WriteLine("FREQuency?");
-                return double.Parse(ConexãoGeradoFunções.FormattedIO.ReadLine(), CultureInfo.InvariantCulture);
+                ConexãoGeradorFunções.FormattedIO.WriteLine("FREQuency?");
+                return double.Parse(ConexãoGeradorFunções.FormattedIO.ReadLine(), CultureInfo.InvariantCulture);
             }
             else
             {
@@ -365,10 +365,10 @@ namespace Biblioteca
         }
         public static bool SaídaGeradorAtiva()
         {
-            if (ConexãoGeradoFunções != null)
+            if (ConexãoGeradorFunções != null)
             {
-                ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut?");
-                string resposta = ConexãoGeradoFunções.FormattedIO.ReadLine();
+                ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut?");
+                string resposta = ConexãoGeradorFunções.FormattedIO.ReadLine();
                 if (resposta == "0\n")
                 {
                     return false;
@@ -383,13 +383,13 @@ namespace Biblioteca
         public static void AlterarSinalDoGerador(string formaDeOnda, double frequencia, double amplitude, Tensão tensão, double offset, bool ativarSaida)
         {
 
-            if (ConexãoGeradoFunções != null)
+            if (ConexãoGeradorFunções != null)
             {
                 string query = frequencia.ToString("G").Replace(',', '.') + "," + amplitude.ToString("G").Replace(',', '.') + " " + tensão.ToString().ToUpper() + "," + offset.ToString("G").Replace(',', '.');
-                ConexãoGeradoFunções.FormattedIO.WriteLine($"APPLy:{formaDeOnda} {query}");
+                ConexãoGeradorFunções.FormattedIO.WriteLine($"APPLy:{formaDeOnda} {query}");
                 if (ativarSaida)
                 {
-                    ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
                 }
             }
         }
@@ -397,18 +397,18 @@ namespace Biblioteca
         public static void AlterarSinalDoGerador(Função função, ParametrosTesteImpulsivo parametros)
         {
             string onda = TiposDeOnda.TipoParaString(função);
-            if (ConexãoGeradoFunções != null)
+            if (ConexãoGeradorFunções != null)
             {
                 string query = parametros.Frequencia.ToString("G").Replace(',', '.') + "," + parametros.Amplitude.ToString("G").Replace(',', '.') + " " + parametros.TensãoTipo.ToString().ToUpper() + "," + parametros.Offset.ToString("G").Replace(',', '.');
                 if (função == Função.Senoidal)
                 {
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
                 }
 
                 if (função == Função.Triangular)
                 {
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"FUNCtion:RAMP:SYMMetry {parametros.Simetria.ToString("G").Replace(',', '.')}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"FUNCtion:RAMP:SYMMetry {parametros.Simetria.ToString("G").Replace(',', '.')}");
                 }
                 if (função == Função.Pulso)
                 {
@@ -417,10 +417,10 @@ namespace Biblioteca
                         + parametros.TensãoTipo.ToString().ToUpper() + "," + parametros.Offset.ToString("G").Replace(',', '.');
 
 
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"PULSe:PERiod {parametros.Periodo.ToString("G").Replace(',', '.')}");
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:DCYCle {parametros.CicloDeTrabalho.ToString("G").Replace(',', '.')}");
-                    ConexãoGeradoFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:TRANsition {parametros.TempoDeQuina.ToString("G").Replace(',', '.')}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"APPLy:{onda} {query}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"PULSe:PERiod {parametros.Periodo.ToString("G").Replace(',', '.')}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:DCYCle {parametros.CicloDeTrabalho.ToString("G").Replace(',', '.')}");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine($"FUNCtion:PULSe:TRANsition {parametros.TempoDeQuina.ToString("G").Replace(',', '.')}");
                 }
             }
         }
@@ -476,6 +476,16 @@ namespace Biblioteca
         public static void SetOffsetVertical(CanalFonte canal, double offset)
         {
             ConexãoOsciloscópio?.FormattedIO.WriteLine($"CHANnel{((int)canal).ToString()}:OFFSet {offset.ToString("G").Replace(',', '.')}");
+        }
+
+        public static void SetFonteTrigger(CanalFonte canalFonte)
+        {
+            if (ConexãoOsciloscópio != null)
+            {
+                ConexãoOsciloscópio.FormattedIO.WriteLine($"TRIGger:A:SOURce {canalFonte.ToString()}");
+                ConexãoOsciloscópio.FormattedIO.WriteLine("TRIGger:A:SOURce?");
+                Debug.WriteLine($"Canal gatilho: {ConexãoOsciloscópio.FormattedIO.ReadLine()}");
+            }
         }
         public static void SetNivelDeTrigger(CanalFonte canalDeTrigger, double nivel)
         {
@@ -570,11 +580,16 @@ namespace Biblioteca
                 foreach (var canal in canais)
                 {
                     Debug.WriteLine($"CH{(int)canal}");
+
+
+                    Debug.WriteLine("header");
                     string header = InquerirOsciloscópio($"CHAN{(int)canal}:DATA:HEAD?", true);
+                    Debug.WriteLine("dados");
                     string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
 
                     formasDeOnda.Add((new FormaDeOnda(header, dados)));
-                    Thread.Sleep(1000);
+                    Debug.WriteLine("sleep 1000");
+                    Thread.Sleep(200);
                 }
                 return true;
             }
@@ -720,33 +735,16 @@ namespace Biblioteca
 
         public static void AlternarSaídaGerador(bool ligadoDesligado)
         {
-            if (ConexãoGeradoFunções != null)
+            if (ConexãoGeradorFunções != null)
             {
                 if (ligadoDesligado)
                 {
-                    ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
                 }
                 if (!ligadoDesligado)
                 {
-                    ConexãoGeradoFunções.FormattedIO.WriteLine("OUTPut:STATe 0");
+                    ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut:STATe 0");
                 }
-            }
-        }
-        
-        /// <summary>
-        /// Envia forma de onda para memória volátil
-        /// </summary>
-        /// <param name="pontos"></param>
-        public static void SetFormaDeOndaArbitrária(double[] pontos)
-        {
-            if (ConexãoGeradoFunções != null)
-            {
-                string dados = "DATA VOLATILE";
-                foreach (var ponto in pontos)
-                {
-                    dados += ","+ponto.ToString().Replace(",", ".");
-                }
-                ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
             }
         }
 
@@ -771,13 +769,29 @@ namespace Biblioteca
 
         public static void SetFormaDeOndaArbitrária(string pontosFormatados)
         {
-            if (ConexãoGeradoFunções != null)
+            try
             {
-                string dados = "DATA VOLATILE";
-                dados += "," + pontosFormatados;
-                ConexãoGeradoFunções.FormattedIO.WriteLine(dados);
+                if (ConexãoGeradorFunções != null)
+                {
+                    string dados = "DATA VOLATILE";
+                    dados += "," + pontosFormatados;
+                    ConexãoGeradorFunções.FormattedIO.WriteLine(dados);
+                }
             }
+            catch (Ivi.Visa.NativeVisaException e )
+            {
+                throw;
+            }
+        }
 
+        public static void SalvarFormaDeOndaNoGerador()
+        {
+            if (ConexãoGeradorFunções != null)
+            {
+                ConexãoGeradorFunções.FormattedIO.WriteLine("DATA:COPY PROGRAMA, VOLATILE");                
+                ConexãoGeradorFunções.FormattedIO.WriteLine("FUNC:USER PROGRAMA");
+                ConexãoGeradorFunções.FormattedIO.WriteLine("APPLy:USER");
+            }
         }
     }
 }

@@ -54,7 +54,7 @@ namespace Biblioteca
         /// <param name="canalTensão"></param>
         /// <param name="canalCorrente"></param>
         /// <returns></returns>
-        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt)
+        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt, CanalFonte gatilho)
         {
             tempo = DateTime.Now;
             double frequencia = Comunicação.GetFrequenciaNoGerador();
@@ -70,6 +70,8 @@ namespace Biblioteca
                 Debug.WriteIf(debug, "AutoSet" + "\n");
                 //Thread.Sleep(2000);
             }
+
+            Comunicação.SetFonteTrigger(gatilho);
 
             Debug.WriteIf(debug, "AutoSet fim \n Inicio SetEscalaDeTempo");
             Comunicação.SetEscalaDeTempo();
@@ -263,7 +265,7 @@ namespace Biblioteca
         /// <param name="offset"></param>
         /// <param name="frequencias"></param>
         /// <returns></returns>
-        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias)
+        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias, CanalFonte gatilho)
         {
             pontosDeMedição.Clear();
 
@@ -278,7 +280,7 @@ namespace Biblioteca
                     // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, numMédias, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
-                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia));
+                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia, gatilho));
                 }
                 catch(IOTimeoutException timeout)
                 {
@@ -346,9 +348,6 @@ namespace Biblioteca
                                               parametros.TensãoTipo,
                                               parametros.Offset,
                                               true);
-
-            
-
             Comunicação.SetEscalaDeTempo(parametros.JanelaDeMedição, 1);
             Comunicação.ConfigurarAquisiçãoOsciloscópio(1, 10000, parametros.NumeroDeMédias, AquisiçãoModo.Médias);
 
@@ -403,24 +402,20 @@ namespace Biblioteca
                 {
                     Comunicação.AlterarSinalDoGerador("SIN", ponto, 10, Tensão.Vpp, 0, true);
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
-                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt));
+                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt, parametros.Gatilho));
                 }
                 catch (IOTimeoutException timeout)
                 {
                     Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}");
                 }                
             }
-
             return pontosRefeitos;
         }
 
         public static ParametrosDaMedição GetParametrosDeMedição(RespostaEmFrequência teste)
         {
             return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2, teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,
-                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt);
+                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt, teste.fonteGatilho);
         }
-
-
-      
     }
 }
