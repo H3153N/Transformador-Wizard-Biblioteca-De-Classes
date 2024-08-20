@@ -169,7 +169,7 @@ namespace Biblioteca
         {
             DateTime dateTime = DateTime.Now;
             double numeroDeQuadradosParaAjustar = 3.5;
-            int numTentativasReiterativas = 5;
+            int numTentativasReiterativas = 20;
 
             Thread.Sleep(1 * delayEntreAjustes);
 
@@ -245,6 +245,32 @@ namespace Biblioteca
             Debug.WriteLine($"Ajuste canal {canal}, {(DateTime.Now - dateTime).TotalMilliseconds}ms");
         }
 
+        public static void AjustarEscalaVerticalRígido(List<CanalFonte> canaisAtivos)
+        {
+            AutoSet();
+            Thread.Sleep(1000);
+            foreach (var canal in canaisAtivos)
+            {                
+                SetOffsetVertical(canal, 0);
+                Thread.Sleep(150);
+            }
+            
+            foreach (var canal in canaisAtivos)
+            {
+                Thread.Sleep(150);
+                double tensãoDePico = GetTensãoDePicoMedida(canal);
+                SetEscalaVertical(canal, tensãoDePico / 4);
+            }
+        }
+
+        public static bool MudouDeDecada(double frequênciaAnterior, double proximaFrequência)
+        {
+            int ordem1 = (int)Math.Log(frequênciaAnterior);
+            int ordem2 = (int)Math.Log(proximaFrequência);
+
+            return ordem1 != ordem2;
+        }
+
         public static void AjustarEscalaParaImpulso(List<Canal> canaisAtivos)
         {
             //autoset
@@ -303,10 +329,10 @@ namespace Biblioteca
                 }
             }
         }
-
         
         public static void SetEscalaVertical(CanalFonte canal, double escala)
         {
+            escala = Math.Clamp(escala, 0, 5);
             if (ConexãoOsciloscópio != null)
             {
                 Debug.WriteLine($"Set Escala : {Math.Round(escala, 3)} V/V");
@@ -486,6 +512,24 @@ namespace Biblioteca
                 ConexãoOsciloscópio.FormattedIO.WriteLine("TRIGger:A:SOURce?");
                 Debug.WriteLine($"Canal gatilho: {ConexãoOsciloscópio.FormattedIO.ReadLine()}");
             }
+        }
+
+        public static void EscolherGatilho(CanalFonte canal1, CanalFonte canal2, CanalFonte canalPadrão, double frequenciaAtual)
+        {
+            double amplitude1 = GetTensãoDePicoMedida(canal1);
+            double amplitude2 = GetTensãoDePicoMedida(canal2);
+
+            if (frequenciaAtual < 1000)
+            {
+                SetFonteTrigger(canalPadrão);
+            }
+            else 
+            {
+                if (amplitude1 > 1.05*amplitude2)
+                    SetFonteTrigger(canal1);
+                if (amplitude2 > 1.05*amplitude1)                
+                    SetFonteTrigger(canal2);                
+            }            
         }
         public static void SetNivelDeTrigger(CanalFonte canalDeTrigger, double nivel)
         {

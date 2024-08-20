@@ -54,13 +54,13 @@ namespace Biblioteca
         /// <param name="canalTensão"></param>
         /// <param name="canalCorrente"></param>
         /// <returns></returns>
-        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt, CanalFonte gatilho)
+        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt, CanalFonte gatilho, bool ajusteFino)
         {
             tempo = DateTime.Now;
             double frequencia = Comunicação.GetFrequenciaNoGerador();
-            Debug.WriteIf(debug,"inicio frequencia " + frequencia.ToString() + "Hz" + "\n");
+            Debug.WriteIf(debug, "inicio frequencia " + frequencia.ToString() + "Hz" + "\n");
             Debug.WriteIf(debug, "Run" + "\n");
-            
+
             Comunicação.RunStop(true);
             Thread.Sleep(20);
 
@@ -68,37 +68,50 @@ namespace Biblioteca
             {
                 Comunicação.AutoSet();
                 Debug.WriteIf(debug, "AutoSet" + "\n");
-                //Thread.Sleep(2000);
+
             }
 
-            Comunicação.SetFonteTrigger(gatilho);
-
-            Debug.WriteIf(debug, "AutoSet fim \n Inicio SetEscalaDeTempo");
-            Comunicação.SetEscalaDeTempo();
-            Debug.WriteIf(debug, "SetEscalaDeTempo Fim" + "\n");
-
-            Debug.WriteIf(debug, "Offset" + "\n");
-
-            Comunicação.SetOffsetVertical(canalTensão, 0);            
-            Comunicação.SetOffsetVertical(canalCorrente, 0);
-
-            Thread.Sleep(250);
-
-            #region Escala vertical
-
             DateTime tempoInicial = DateTime.Now;
-            Debug.WriteIf(debug, "SetEscalaDeVertical 1" + "\n");
-            int delay = 25; if (testeCauteloso)  delay = 50; 
+            TimeSpan tempoAjusteCanalA = new TimeSpan(0);
+            TimeSpan tempoAjusteCanalB = new TimeSpan(0);
+            Comunicação.SetEscalaDeTempo();
+            if (ajusteFino)
+            {
+                List<CanalFonte> canals = new List<CanalFonte>() { canalTensão, canalCorrente };
+                Comunicação.AjustarEscalaVerticalRígido(canals);
+                Comunicação.EscolherGatilho(canalTensão, canalCorrente, gatilho, frequencia);
+            }
+            else
+            {
+                //Comunicação.SetFonteTrigger(gatilho);
+                Comunicação.EscolherGatilho(canalTensão, canalCorrente, gatilho, frequencia);
 
-            Comunicação.AjustarEscalaVertical( canalTensão, 2, delay, true);
-            TimeSpan tempoAjusteCanalA = DateTime.Now - tempoInicial;
+                Debug.WriteIf(debug, "AutoSet fim \n Inicio SetEscalaDeTempo");
+                
+                Debug.WriteIf(debug, "SetEscalaDeTempo Fim" + "\n");
 
-            tempoInicial = DateTime.Now;
-            Debug.WriteIf(debug, "SetEscalaDeVertical 2 " + "\n");
-            Comunicação.AjustarEscalaVertical( canalCorrente, 2, delay, true);
-            TimeSpan tempoAjusteCanalB = DateTime.Now - tempoInicial;
-            #endregion
+                Debug.WriteIf(debug, "Offset" + "\n");
 
+                Comunicação.SetOffsetVertical(canalTensão, 0);
+                Comunicação.SetOffsetVertical(canalCorrente, 0);
+
+                Thread.Sleep(250);
+
+                #region Escala vertical
+
+                tempoInicial = DateTime.Now;
+                Debug.WriteIf(debug, "SetEscalaDeVertical 1" + "\n");
+                int delay = 25; if (testeCauteloso) delay = 50;
+
+                Comunicação.AjustarEscalaVertical(canalTensão, 2, delay, true);
+                tempoAjusteCanalA = DateTime.Now - tempoInicial;
+
+                tempoInicial = DateTime.Now;
+                Debug.WriteIf(debug, "SetEscalaDeVertical 2 " + "\n");
+                Comunicação.AjustarEscalaVertical(canalCorrente, 2, delay, true);
+                tempoAjusteCanalB = DateTime.Now - tempoInicial;
+                #endregion
+            }
 
             Thread.Sleep(50);
             
@@ -270,24 +283,36 @@ namespace Biblioteca
             pontosDeMedição.Clear();
 
             Comunicação.AlterarSinalDoGerador("SIN", frequencias[0], tensaoDePico, Tensão.Vpp, offset, true);
-            Comunicação.AutoSet();
+            //Comunicação.AutoSet();
             //Thread.Sleep(2000);
-
+            int j = 0;
             foreach (double i in frequencias)
             {
+
+                bool ajusteFino = false;
+                if (j == 0)
+                {
+                    ajusteFino = true;
+                }
+                else
+                {
+                    ajusteFino = Comunicação.MudouDeDecada(frequencias[j - 1], i);
+                }
+                
                 try
                 {
                     // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, numMédias, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
-                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia, gatilho));
+                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia, gatilho, ajusteFino));
                 }
                 catch(IOTimeoutException timeout)
                 {
                     Debug.WriteIf(debug, $"Varredura de frequencia: Timeout: {timeout.Message}" + "\n");
                 }
+                j++;
             }
-            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);
+            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);            
             return true;
         }
 
@@ -402,7 +427,7 @@ namespace Biblioteca
                 {
                     Comunicação.AlterarSinalDoGerador("SIN", ponto, 10, Tensão.Vpp, 0, true);
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
-                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt, parametros.Gatilho));
+                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt, parametros.Gatilho, false));
                 }
                 catch (IOTimeoutException timeout)
                 {
