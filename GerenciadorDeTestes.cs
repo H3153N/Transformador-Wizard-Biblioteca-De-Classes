@@ -278,7 +278,7 @@ namespace Biblioteca
         /// <param name="offset"></param>
         /// <param name="frequencias"></param>
         /// <returns></returns>
-        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, int tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias, CanalFonte gatilho)
+        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, double tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias, CanalFonte gatilho)
         {
             pontosDeMedição.Clear();
 
@@ -440,7 +440,7 @@ namespace Biblioteca
         public static ParametrosDaMedição GetParametrosDeMedição(RespostaEmFrequência teste)
         {
             return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2, teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,
-                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt, teste.fonteGatilho);
+                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt, teste.FonteGatilho);
         }
     }
 }

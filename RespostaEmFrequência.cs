@@ -14,7 +14,8 @@ namespace Biblioteca
     {
         
 
-        public CanalFonte fonteGatilho { get; set; }
+        public CanalFonte FonteGatilho { get; set; }
+        public double TensãoGerador { get; set; }
         public string Path { get;  set; } = "";
         public ModuloFase ModuloFase { get;  set; } = new ModuloFase();
         public List<PontoDeMedição> medições { get; set; }
