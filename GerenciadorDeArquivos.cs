@@ -218,5 +218,10 @@ namespace Biblioteca
                 throw;
             }
         }
+
+        public static void ExcluirArquivo(string path)
+        {
+            System.IO.File.Delete(path);
+        }
     }
 }

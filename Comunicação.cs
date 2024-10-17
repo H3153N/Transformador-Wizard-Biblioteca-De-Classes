@@ -828,6 +828,21 @@ namespace Biblioteca
             }
         }
 
+        public static void InverterCanal(CanalFonte canal, bool invertido)
+        {
+            if (ConexãoOsciloscópio != null)
+            {
+                if (invertido)
+                {
+                    ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{(int)canal}:POLarity INVerted");
+                }
+                else
+                {
+                    ConexãoOsciloscópio.FormattedIO.WriteLine($"CHANnel{(int)canal}:POLarity NORMal");
+                }                
+            }
+        }
+
         public static void SalvarFormaDeOndaNoGerador()
         {
             if (ConexãoGeradorFunções != null)

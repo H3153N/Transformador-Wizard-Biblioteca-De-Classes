@@ -54,7 +54,7 @@ namespace Biblioteca
         /// <param name="canalTensão"></param>
         /// <param name="canalCorrente"></param>
         /// <returns></returns>
-        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool testeCauteloso, bool usaShunt, double Rshunt, CanalFonte gatilho, bool ajusteFino)
+        public static PontoDeMedição RealizarMediçãoFrequencia(MediçãoTipo tipo, CanalFonte canalTensão, CanalFonte canalCorrente, bool invertido1, bool invertido2, bool testeCauteloso, bool usaShunt, double Rshunt, CanalFonte gatilho, bool ajusteFino)
         {
             tempo = DateTime.Now;
             double frequencia = Comunicação.GetFrequenciaNoGerador();
@@ -68,8 +68,9 @@ namespace Biblioteca
             {
                 Comunicação.AutoSet();
                 Debug.WriteIf(debug, "AutoSet" + "\n");
-
             }
+
+            
 
             DateTime tempoInicial = DateTime.Now;
             TimeSpan tempoAjusteCanalA = new TimeSpan(0);
@@ -86,6 +87,7 @@ namespace Biblioteca
                 //Comunicação.SetFonteTrigger(gatilho);
                 Comunicação.EscolherGatilho(canalTensão, canalCorrente, gatilho, frequencia);
 
+                gatilho = CanalFonte.CH1;  // FORÇA O GATILHO PARA O CANAL 1                              <<<<<<TIRAR DEPOIS
                 Debug.WriteIf(debug, "AutoSet fim \n Inicio SetEscalaDeTempo");
                 
                 Debug.WriteIf(debug, "SetEscalaDeTempo Fim" + "\n");
@@ -117,6 +119,9 @@ namespace Biblioteca
             
            
             int delayMillis = 5 + (int)((1 / frequencia) * 1000);
+
+            Comunicação.InverterCanal(canalTensão, invertido1);
+            Comunicação.InverterCanal(canalCorrente, invertido2);
 
 
             Debug.WriteIf(debug, "STOP");
@@ -278,7 +283,7 @@ namespace Biblioteca
         /// <param name="offset"></param>
         /// <param name="frequencias"></param>
         /// <returns></returns>
-        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente, double tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias, CanalFonte gatilho)
+        public static bool VarreduraDeFrequencia(CanalFonte canalTensao, CanalFonte canalCorrente,bool invertido1, bool invertido2, double tensaoDePico, int offset, List<double> frequencias, bool testeCauteloso, bool shunt, double resistencia, int numMédias, CanalFonte gatilho)
         {
             pontosDeMedição.Clear();
 
@@ -301,10 +306,10 @@ namespace Biblioteca
                 
                 try
                 {
-                    // COLOCAR TODOS ESSES PARAMETROS COMO CONFICURACOES PREVIAS
+                    // COLOCAR TODOS ESSES PARAMETROS COMO CONFIGURACOES PREVIAS
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, numMédias, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
-                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, testeCauteloso, shunt, resistencia, gatilho, ajusteFino));
+                    pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, invertido1, invertido2, testeCauteloso, shunt, resistencia, gatilho, ajusteFino));
                 }
                 catch(IOTimeoutException timeout)
                 {
@@ -346,9 +351,6 @@ namespace Biblioteca
                 return new List<double>();
             }
         }
-
-
-
         public static void PrepararOscilosCópioParaImpulso(double janela, double offset,int medias, List<Canal> canaisAtivos)
         {
             Comunicação.RunStop(true);            
@@ -407,10 +409,6 @@ namespace Biblioteca
 
             return respostaAoImpulso;
         }
-
-
-
-
         /// <summary>
         /// SUBSTITUIR PARAMETROS DO GERADOR POR VALORES MALEAVEIS
         /// </summary>
@@ -427,7 +425,7 @@ namespace Biblioteca
                 {
                     Comunicação.AlterarSinalDoGerador("SIN", ponto, 10, Tensão.Vpp, 0, true);
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, 16, AquisiçãoModo.Médias);
-                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, true, parametros.UsaShunt, parametros.ResistenciaShunt, parametros.Gatilho, false));
+                    pontosRefeitos.Add(RealizarMediçãoFrequencia(parametros.MediçãoTipo, parametros.CanalFonte1, parametros.CanalFonte2, parametros.Canal1Invertido, parametros.Canal2Invertido, true, parametros.UsaShunt, parametros.ResistenciaShunt, parametros.Gatilho, false));
                 }
                 catch (IOTimeoutException timeout)
                 {
@@ -437,10 +435,15 @@ namespace Biblioteca
             return pontosRefeitos;
         }
 
+
+        /// <summary>
+        /// essa função é burrice, dá pra criar um construtor para parametros de medição que receba RespostaEmFrequencia como argumento
+        /// </summary>
+        /// <param name="teste"></param>
+        /// <returns></returns>
         public static ParametrosDaMedição GetParametrosDeMedição(RespostaEmFrequência teste)
         {
-            return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2, teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,
-                                           10, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt, teste.FonteGatilho);
+            return new ParametrosDaMedição(teste.CanalFonte1, teste.CanalFonte2,teste.Canal1Invertido ,teste.Canal2Invertido ,teste.AtenuaçãoCanalFonte1, teste.AtenuaçãoCanalFonte2,teste.TensãoGerador, 0, "SIN", 10, 10000, teste.NúmeroDeMédias, teste.PontosPorDecada, MediçãoTipo.Admitancia, teste.TesteShunt, teste.ResistenciaShunt, teste.FonteGatilho);
         }
     }
 }

@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Biblioteca
 {
-    public class CorreçãoCompletaEventArgs : EventArgs
+    public class DadosAlteradosEventArgs : EventArgs
     {
         public int Index { get; private set; }
 
-        public CorreçãoCompletaEventArgs(int index)
+        public DadosAlteradosEventArgs(int index)
         {
             Index = index;
         }

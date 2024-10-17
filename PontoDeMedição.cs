@@ -8,8 +8,8 @@ namespace Biblioteca
 {
     public class PontoDeMedição(double admitancia, double fase, double frequencia, int houveErro, double escalaTensao, double escalaCorrente)
     {
-        public double Admitancia { get; private set; } = admitancia;
-        public double Fase { get; private set; } = fase;
+        public double Admitancia { get; set; } = admitancia;
+        public double Fase { get;  set; } = fase;
         public double Frequencia { get; private set; } = frequencia;
         public int houveErro { get; private set; } = houveErro;
 

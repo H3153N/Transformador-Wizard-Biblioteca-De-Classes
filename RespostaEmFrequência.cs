@@ -37,11 +37,18 @@ namespace Biblioteca
         public CanalFonte CanalFonte1 { get;  set; }
         public CanalFonte CanalFonte2 { get;  set; }
 
+        public bool Canal1Invertido { get; set; }
+        public bool Canal2Invertido { get; set; }
+
         public Atenuação AtenuaçãoCanalFonte1 { get;  set; }
         public Atenuação AtenuaçãoCanalFonte2 { get;  set; }
         #endregion
         public List<int> PontosPorDecada { get;  set; }
 
+
+        /// <summary>
+        /// sim, isso precisa existir. o des-serializador de json precisa de um contrutor livre 
+        /// </summary>
         public RespostaEmFrequência()
         {
 
