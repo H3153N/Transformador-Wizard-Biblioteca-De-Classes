@@ -36,9 +36,23 @@ namespace Biblioteca
             get { return GetFrequenciaNoGerador(); }
             set { AlterarFrequenciaDoGerador(value); }
         }
-        public double EscalaDeTempo
+        public static double EscalaDeTempo
         {
             get { return GetEscalaDeTempo(); }
+        }
+        public static double JanelaDeTempo
+        {
+            get { return 12 * GetEscalaDeTempo(); }
+        }
+
+        public static int Amostras
+        {
+            get { return int.Parse(InquerirOsciloscópio("ACQuire:POINts:VALue?", true)); }
+        }
+
+        public static int NúmeroDeMédias
+        {
+            get { return int.Parse(InquerirOsciloscópio("ACQuire:AVERage:COUNt?", true)); }
         }
         public static bool ConectarOsciloscópio()
         {
@@ -244,7 +258,6 @@ namespace Biblioteca
 
             Debug.WriteLine($"Ajuste canal {canal}, {(DateTime.Now - dateTime).TotalMilliseconds}ms");
         }
-
         public static void AjustarEscalaVerticalRígido(List<CanalFonte> canaisAtivos)
         {
             AutoSet();
@@ -262,7 +275,6 @@ namespace Biblioteca
                 SetEscalaVertical(canal, tensãoDePico / 4);
             }
         }
-
         public static bool MudouDeDecada(double frequênciaAnterior, double proximaFrequência)
         {
             int ordem1 = (int)Math.Log(frequênciaAnterior);
@@ -270,7 +282,6 @@ namespace Biblioteca
 
             return ordem1 != ordem2;
         }
-
         public static void AjustarEscalaParaImpulso(List<Canal> canaisAtivos)
         {
             //autoset
@@ -417,6 +428,10 @@ namespace Biblioteca
                 {
                     ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut:STATe 1");
                 }
+                else
+                {
+                    ConexãoGeradorFunções.FormattedIO.WriteLine("OUTPut:STATe 0");
+                }
             }
         }
 
@@ -455,7 +470,6 @@ namespace Biblioteca
             double escalaDeTempo = 4 * (1 / FrequenciaAplicada) / 12;
             ConexãoOsciloscópio?.FormattedIO.WriteLine($"TIMebase:SCALe {escalaDeTempo.ToString("G").Replace(',', '.')}");
         }
-
         public static void SetEscalaDeTempo(double janelaDeMedição, double QuadradosOffset)
         {
             if (ConexãoOsciloscópio != null)
@@ -467,8 +481,7 @@ namespace Biblioteca
                 ConexãoOsciloscópio.FormattedIO.WriteLine($"TIMebase:POSition {offset.ToString("G").Replace(',', '.')}");
             }
         }
-
-        double GetEscalaDeTempo()
+        static double GetEscalaDeTempo()
         {
             if (ConexãoOsciloscópio != null)
             {
@@ -631,8 +644,17 @@ namespace Biblioteca
                     Debug.WriteLine("dados");
                     string dados = InquerirOsciloscópio($"CHAN{(int)canal}:DATA?", true);
 
-                    formasDeOnda.Add((new FormaDeOnda(header, dados)));
-                    Debug.WriteLine("sleep 1000");
+                    bool deuTimeout = dados.Split(" ").First().Trim(' ') == "Timeout";
+
+                    if (!deuTimeout)
+                    {
+                        formasDeOnda.Add((new FormaDeOnda(header, dados)));
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"timeout CH{(int)canal}");
+                    }
+                    Debug.WriteLine("sleep 200");
                     Thread.Sleep(200);
                 }
                 return true;

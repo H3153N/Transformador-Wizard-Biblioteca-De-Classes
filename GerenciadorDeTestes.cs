@@ -317,7 +317,14 @@ namespace Biblioteca
                 }
                 j++;
             }
-            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);            
+            Comunicação.AlterarSinalDoGerador("SIN", 10, tensaoDePico, Tensão.Vpp, offset, false);      
+            
+            for(int i = 0; i < 5; i++) 
+            {
+                Comunicação.AlterarSinalDoGerador("SIN", 10, 0, Tensão.Vpp, offset, false);
+                Thread.Sleep(100);
+            }
+
             return true;
         }
 
