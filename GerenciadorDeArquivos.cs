@@ -214,7 +214,6 @@ namespace Biblioteca
             }
             catch (Exception)
             {
-
                 throw;
             }
         }
