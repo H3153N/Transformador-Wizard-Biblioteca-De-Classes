@@ -38,12 +38,27 @@ namespace Biblioteca
 
                 double frequenciaAtual = decadaAtual;
 
-                while (frequenciaAtual <= proximaDecada) 
+                while (frequenciaAtual < proximaDecada) 
                 {
                     frequencias.Add(frequenciaAtual);
                     frequenciaAtual = frequenciaAtual *= tamanhoDoPasso;
                 }
                 index++;
+            }
+            List<double> repetidos = new List<double>();
+            for (int i = 1; i < frequencias.Count; i++)
+            {
+                double atual = frequencias[i];
+                double anterior = frequencias[i - 1];
+                double diferença = atual - anterior;
+                if (diferença < 0.3)
+                {
+                    repetidos.Add(frequencias[i]);
+                }
+            }
+            foreach (var item in repetidos)
+            {
+                frequencias.Remove(item);
             }
             return frequencias;
         }
@@ -76,6 +91,7 @@ namespace Biblioteca
             TimeSpan tempoAjusteCanalA = new TimeSpan(0);
             TimeSpan tempoAjusteCanalB = new TimeSpan(0);
             Comunicação.SetEscalaDeTempo();
+            Thread.Sleep(50);
             if (ajusteFino)
             {
                 List<CanalFonte> canals = new List<CanalFonte>() { canalTensão, canalCorrente };
@@ -94,6 +110,7 @@ namespace Biblioteca
 
                 Debug.WriteIf(debug, "Offset" + "\n");
 
+                Comunicação.InquerirOsciloscópio("ACQuire:TYPE REFresh", false);
                 Comunicação.SetOffsetVertical(canalTensão, 0);
                 Comunicação.SetOffsetVertical(canalCorrente, 0);
 
@@ -112,6 +129,8 @@ namespace Biblioteca
                 Debug.WriteIf(debug, "SetEscalaDeVertical 2 " + "\n");
                 Comunicação.AjustarEscalaVertical(canalCorrente, 2, delay, true);
                 tempoAjusteCanalB = DateTime.Now - tempoInicial;
+
+                Comunicação.InquerirOsciloscópio("ACQuire:TYPE AVERage", false);
                 #endregion
             }
 
@@ -131,6 +150,7 @@ namespace Biblioteca
             Comunicação.RunSingle();
             Thread.Sleep(10);
 
+            #region MÉDIAS
             Debug.Write("Inicio médias" + "\n");
             DateTime inicioMédias = DateTime.Now;
             bool runSingleRodando = true;
@@ -138,10 +158,19 @@ namespace Biblioteca
             {
 
                 string resposta = Comunicação.InquerirOsciloscópio("ACQuire:AVERage:COMPlete?", true);
+
+                TimeSpan tempoPassado = DateTime.Now - inicioMédias;
+
+                //para caso o programa entre em um loop e não pare de fazer médias
+                if (tempoPassado.TotalSeconds > 25)
+                {
+                    break;
+                }
                 if (resposta == "0\n")
                 {
                     Thread.Sleep(delayMillis);
                     Debug.WriteIf(debug, "resposta: " + resposta + " delay: " + delayMillis.ToString() + "\n");
+
                 }
                 else if (resposta == "1\n") 
                 {
@@ -150,7 +179,7 @@ namespace Biblioteca
             }
             TimeSpan tempoMédias = DateTime.Now - inicioMédias;
             Debug.Write($"Fim médias: {tempoMédias.TotalMilliseconds} ms" + "\n");
-
+            #endregion
             Thread.Sleep(150);
             
             if (tipo == MediçãoTipo.Admitancia)
@@ -293,13 +322,8 @@ namespace Biblioteca
             int j = 0;
             foreach (double i in frequencias)
             {
-
                 bool ajusteFino = false;
-                if (j == 0)
-                {
-                    ajusteFino = true;
-                }
-                else
+                if (j > 1)
                 {
                     ajusteFino = Comunicação.MudouDeDecada(frequencias[j - 1], i);
                 }
@@ -309,6 +333,7 @@ namespace Biblioteca
                     // COLOCAR TODOS ESSES PARAMETROS COMO CONFIGURACOES PREVIAS
                     Comunicação.ConfigurarAquisiçãoOsciloscópio(10, 10000, numMédias, AquisiçãoModo.Médias);
                     Comunicação.AlterarSinalDoGerador("SIN", i, tensaoDePico, Tensão.Vpp , offset, true);
+
                     pontosDeMedição.Add(RealizarMediçãoFrequencia(MediçãoTipo.Admitancia, canalTensao, canalCorrente, invertido1, invertido2, testeCauteloso, shunt, resistencia, gatilho, ajusteFino));
                 }
                 catch(IOTimeoutException timeout)

@@ -26,20 +26,22 @@ namespace Biblioteca
 
         //TEMPORARIO -> REMOVER ANTES DE RL 2.0
         public static readonly string ArquivoConexões = PastaConfigurações + "\\conexões.txt";
-        public static ObservableCollection<Dispositivo> GetDispositivos(string pastaMestre)
+        public static async Task<List<Dispositivo>> GetDispositivos(string[] dispStrings)
         {
-            ObservableCollection<Dispositivo> dispositivos = [];
-            string[] dispStrings = Directory.GetDirectories(pastaMestre);
+            List<Task<Dispositivo>> dispositivosTask = [];
 
-            foreach (string dispString in dispStrings)
+            foreach (var caminho in dispStrings)
             {
-                dispositivos.Add(new Dispositivo(dispString));
+                dispositivosTask.Add(Task.Run(()=> new Dispositivo(caminho)));
             }
+
+            List<Dispositivo>  dispositivos = new((await Task.WhenAll(dispositivosTask)));
+
             return dispositivos;
         }
-        public static ObservableCollection<Ensaio> GetEnsaios(string pastaEnsaios)
+        public static List<Ensaio> GetEnsaios(string pastaEnsaios)
         {
-            ObservableCollection<Ensaio> ensaios = [];
+            List<Ensaio> ensaios = [];
             string[] ensaioStrings =Directory.GetDirectories(pastaEnsaios);
 
             foreach (string ensaioString in ensaioStrings )
@@ -65,36 +67,7 @@ namespace Biblioteca
 
         //será inutilizado
         
-        public static List<PontoDeMedição> MergirPontosCorrigidosNaListaOriginal(List<PontoDeMedição> pontosAlterados, List<PontoDeMedição> pontosOriginais)
-        {
-            List<int> indices = new List<int>();
-
-            if (pontosOriginais != null && pontosAlterados != null)
-            {
-                for (int i = 0; i < pontosOriginais.Count; i++)
-                {
-                    for (int j = 0; j < pontosAlterados.Count; j++)
-                    {
-                        if (pontosOriginais[i].Frequencia == pontosAlterados[j].Frequencia)
-                        {
-                            indices.Add(i);
-                        }
-                    }
-                }
-
-                for (int i = 0; i < pontosAlterados.Count; i++)
-                {
-                    pontosOriginais[indices[i]] = pontosAlterados[i];
-                }
-
-                return pontosOriginais;
-            }
-            else
-            {
-                return new List<PontoDeMedição> { };
-            }
-            
-        }
+        
         public static void SalvarDispositivo(Dispositivo dispositivo)
         {
             string caminho = System.IO.Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), PastaDispositivos);
@@ -188,28 +161,11 @@ namespace Biblioteca
             File.WriteAllText(caminho, texto);
         }
 
-        public static List<double> GetPontosFormaDeOndaArbitrária(string path)
-        {
-            List<double> numeros = new List<double>();
-            string dados = File.ReadAllText(path).Replace(",",".");
-            string[] valores = dados.Split("\r\n");
-            foreach (var item in valores)
-            {
-                if (double.TryParse(item, CultureInfo.InvariantCulture, out double numero))
-                {
-                    numeros.Add(numero);
-                }
-            }
-            return numeros;
-        }
-
         public static string GetStringFormaDeOndaArbitrária(string path)
         {
             try
             {
                 string dados = File.ReadAllText(path).Replace(",", ".").Replace("\r\n", ",");
-                // string[] valores = dados.Split("\r\n");
-
                 return dados.TrimEnd(',');
             }
             catch (Exception)
@@ -220,7 +176,15 @@ namespace Biblioteca
 
         public static void ExcluirArquivo(string path)
         {
-            System.IO.File.Delete(path);
+            if (File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+            }
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+            
         }
     }
 }

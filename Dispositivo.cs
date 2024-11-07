@@ -17,7 +17,7 @@ namespace Biblioteca
         public string Path{ get; private set; } = string.Empty;
         public int Dimensao { get; private set; }
 
-        public ObservableCollection<Ensaio> Ensaios { get; private set; } = [];
+        public List<Ensaio> Ensaios { get; private set; } = [];
 
         public Dispositivo(string path)
         {
